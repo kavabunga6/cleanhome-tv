@@ -14,7 +14,7 @@ import java.util.Map;
  * the stock launcher handles both, so with the stock launcher disabled the button does nothing. Buttons listed in
  * input_key_keycodes (config.xml or a theme) open the input switcher the same way, and app_keys start an app (a
  * YouTube button that only the stock launcher answered). Every other key passes through untouched.
- * Opt-in: INPUT_KEY_SERVICE=1 build-and-install.sh (or -InputKeyService on Windows) enables it.
+ * Optional service enabled in Android's accessibility settings.
  */
 public class InputKeyService extends AccessibilityService {
 

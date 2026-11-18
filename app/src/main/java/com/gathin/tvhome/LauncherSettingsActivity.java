@@ -46,9 +46,6 @@ public final class LauncherSettingsActivity extends Activity {
             0xFFFFB04A, 0xFFFF5C5C, 0xFF4B8DFF, 0xFFA78BFA, 0xFF38E0C4};
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
-    private final TextView[] rowChoices = new TextView[4];
-    private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
-    private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
     private final TextView[] clockChoices = new TextView[CLOCK_FORMATS.length];
     private TextView wallpaperChoice;
@@ -62,12 +59,8 @@ public final class LauncherSettingsActivity extends Activity {
     private File previewFile;
     private Bitmap previewBitmap;
     private LinearLayout previewStack;
-    private LinearLayout previewDock;
     private int previewColumns = -1;
-    private int previewRows = -1;
     private int columns;
-    private int rowsBelowDock;
-    private int dockOpacity;
     private String clockFormat;
     private boolean animations;
     private boolean advancedEffects;
@@ -89,8 +82,6 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.appsSection).setVisibility(
                 config.launcherSettingsButton || config.openOnStartChoice ? View.VISIBLE : View.GONE);
         columns = config.columns;
-        rowsBelowDock = config.rowsBelowDock;
-        dockOpacity = config.dockOpacity;
         clockFormat = config.clockFormat;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
@@ -103,30 +94,6 @@ public final class LauncherSettingsActivity extends Activity {
                 if (columns == value) return;
                 columns = value;
                 choices.edit().putInt("columns", value).apply();
-                changed();
-                refresh();
-            });
-        }
-        int[] rowIds = {R.id.rows0, R.id.rows1, R.id.rows2, R.id.rows3};
-        for (int i = 0; i < rowIds.length; i++) {
-            final int value = i;
-            rowChoices[i] = findViewById(rowIds[i]);
-            rowChoices[i].setOnClickListener(v -> {
-                if (rowsBelowDock == value) return;
-                rowsBelowDock = value;
-                choices.edit().putInt(Config.ROWS_BELOW_DOCK_KEY, value).apply();
-                changed();
-                refresh();
-            });
-        }
-        int[] dockIds = {R.id.dock100, R.id.dock70, R.id.dock50, R.id.dock30};
-        for (int i = 0; i < dockIds.length; i++) {
-            final int value = DOCK_OPACITIES[i];
-            dockChoices[i] = findViewById(dockIds[i]);
-            dockChoices[i].setOnClickListener(v -> {
-                if (dockOpacity == value) return;
-                dockOpacity = value;
-                choices.edit().putInt(Config.DOCK_OPACITY_KEY, value).apply();
                 changed();
                 refresh();
             });
@@ -149,8 +116,6 @@ public final class LauncherSettingsActivity extends Activity {
             findViewById(android.R.id.content).setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         if (getResources().getBoolean(R.bool.rtl_app_grid)) {
             reverseRow(columnChoices);
-            reverseRow(rowChoices);
-            reverseRow(dockChoices);
             reverseRow(clockChoices);
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
@@ -188,13 +153,11 @@ public final class LauncherSettingsActivity extends Activity {
         followThemeValue = findViewById(R.id.followThemeValue);
         findViewById(R.id.followThemeRow).setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
-            choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
+            choices.edit().remove("columns").remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.CLOCK_FORMAT_KEY).remove(OpenOnStart.KEY).commit();
+                    .remove(Config.CLOCK_FORMAT_KEY).remove(OpenOnStart.KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
-            rowsBelowDock = current.rowsBelowDock;
-            dockOpacity = current.dockOpacity;
             clockFormat = current.clockFormat;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
@@ -302,12 +265,6 @@ public final class LauncherSettingsActivity extends Activity {
         for (int i = 0; i < columnChoices.length; i++) {
             columnChoices[i].setSelected(columns == i + 4);
         }
-        for (int i = 0; i < rowChoices.length; i++) {
-            rowChoices[i].setSelected(rowsBelowDock == i);
-        }
-        for (int i = 0; i < dockChoices.length; i++) {
-            dockChoices[i].setSelected(dockOpacity == DOCK_OPACITIES[i]);
-        }
         for (int i = 0; i < clockChoices.length; i++) {
             clockChoices[i].setSelected(CLOCK_FORMATS[i].equals(clockFormat));
         }
@@ -375,7 +332,6 @@ public final class LauncherSettingsActivity extends Activity {
         }
     }
 
-    /** The miniature Home: wallpaper, the dock with its panel opacity, and the grid rows under it. */
     private void refreshPreview() {
         File file = currentWallpaperFile();
         boolean changed = file == null ? previewFile != null : !file.equals(previewFile);
@@ -388,19 +344,16 @@ public final class LauncherSettingsActivity extends Activity {
             else wallpaper.setImageDrawable(null);
         }
         FrameLayout screen = findViewById(R.id.previewScreen);
-        if (previewStack == null || previewColumns != columns || previewRows != rowsBelowDock) {
+        if (previewStack == null || previewColumns != columns) {
             buildPreview(screen);
-        } else {
-            previewDock.setAlpha(0.35f + 0.65f * dockOpacity / 100f);
         }
     }
 
-    /** Builds the miniature once per layout shape; column and row changes rebuild it, opacity does not. */
+    /** Rebuilds the miniature when the column count changes. */
     private void buildPreview(FrameLayout screen) {
         screen.removeAllViews();
         float d = getResources().getDisplayMetrics().density;
         previewColumns = columns;
-        previewRows = rowsBelowDock;
 
         TextView clock = new TextView(this);
         clock.setText(DateFormat.getTimeFormat(this).format(new Date()));
@@ -428,34 +381,19 @@ public final class LauncherSettingsActivity extends Activity {
         previewStack.setOrientation(LinearLayout.VERTICAL);
         FrameLayout.LayoutParams stackParams = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        stackParams.gravity = Gravity.BOTTOM;
+        stackParams.gravity = Gravity.TOP;
         stackParams.leftMargin = (int) (10 * d);
         stackParams.rightMargin = (int) (10 * d);
-        stackParams.bottomMargin = (int) (10 * d);
+        stackParams.topMargin = (int) (68 * d);
         screen.addView(previewStack, stackParams);
 
-        for (int row = 0; row < rowsBelowDock; row++) {
+        for (int row = 0; row < 2; row++) {
             LinearLayout rowView = previewRow(d, 16);
             rowView.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             previewStack.addView(rowView);
         }
 
-        previewDock = new LinearLayout(this);
-        previewDock.setOrientation(LinearLayout.HORIZONTAL);
-        GradientDrawable dockBg = new GradientDrawable();
-        dockBg.setColor(0x33FFFFFF);
-        dockBg.setCornerRadius(9 * d);
-        previewDock.setBackground(dockBg);
-        int pad = (int) (6 * d);
-        previewDock.setPadding(pad, pad, pad, pad);
-        previewDock.setAlpha(0.35f + 0.65f * dockOpacity / 100f);
-        for (int i = 0; i < columns; i++) {
-            previewDock.addView(previewTile(d, PREVIEW_COLORS[i % PREVIEW_COLORS.length], 20, 6));
-        }
-        previewDock.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        previewStack.addView(previewDock);
     }
 
     private LinearLayout previewRow(float d, int heightDp) {
@@ -485,9 +423,9 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private boolean hasOnTvChoices() {
-        return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
+        return choices.contains("columns")
                 || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
+                || choices.contains(Config.WALLPAPER_CHOICE_KEY)
                 || choices.contains(Config.CLOCK_FORMAT_KEY) || choices.contains(OpenOnStart.KEY);
     }
 

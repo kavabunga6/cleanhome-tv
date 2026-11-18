@@ -45,7 +45,6 @@
     <string name="launcher_settings">Ajustes del lanzador</string>
     <string name="native_settings">Ajustes del fabricante</string>
     <string name="columns_label">Aplicaciones por fila</string>
-    <string name="dock_opacity_label">Opacidad de la barra del dock</string>
     <string name="animations_state">Animaciones: %1$s</string>
     <string name="advanced_effects">Efectos avanzados</string>
     <string name="advanced_effects_state">Efectos avanzados: %1$s</string>
@@ -58,13 +57,7 @@
     <string name="on">Sí</string>
     <string name="off">No</string>
     <string name="enable">Activar</string>
-    <string name="dock_edit">Editar el dock</string>
     <string name="power_menu">Reiniciar…</string>
-    <string name="dock_edit_hint">Elige el hueco del dock que quieres cambiar y pulsa OK. Atrás para terminar.</string>
-    <string name="dock_edit_pick_app">Ahora elige la app que quieres poner ahí y pulsa OK. Atrás para elegir otro hueco.</string>
-    <string name="tile_add_to_dock">Añadir al dock</string>
-    <string name="tile_replace_in_dock">Sustituir por otra app</string>
-    <string name="dock_edit_pick_place">Elige el hueco del dock para esta app y pulsa OK. Atrás para cancelar.</string>
     <string name="reorder">Reordenar apps</string>
     <string name="tile_move">Mover</string>
     <string name="reorder_hint">OK coge una app, las flechas la mueven, Atrás la suelta. Atrás de nuevo para terminar.</string>
@@ -89,7 +82,6 @@
     <string name="vpn_off">VPN apagada</string>
     <string name="home_settings">Elegir inicio predeterminado</string>
     <string name="home_settings_help">Elige tu inicio original para dejar de usar CleanYourTV como inicio, o CleanYourTV para volver a él. El lanzador original tiene que estar activado y el televisor debe ofrecer un selector de inicio; si estaba desactivado, usa antes el script de restauración.</string>
-    <string name="rows_below_dock_label">Filas debajo del dock</string>
     <string name="wallpaper_label">Fondo</string>
     <string name="wallpaper_state">Fondo: %1$s</string>
     <string name="wallpaper_none">Ninguno</string>

@@ -10,8 +10,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Race-weekend mode. A theme's config.json can carry an F1 calendar ({@code race_calendar}, written by
- * tools/race_calendar.py); from shortly before a weekend's first session until the race is over, Home shows
+ * Race-weekend mode. A theme's config.json can carry an F1 calendar ({@code race_calendar}); from shortly before a weekend's first session until the race is over, Home shows
  * a small panel with the next session and a countdown. Scheduling uses the clock against owner-pushed
  * data and is tested on the JVM; display labels use Android resources.
  */

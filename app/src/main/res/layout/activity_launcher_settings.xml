@@ -61,26 +61,6 @@
                     </LinearLayout>
 
                     <LinearLayout style="@style/SettingsCardStatic">
-                        <TextView style="@style/SettingsLabel" android:text="@string/settings_rows" />
-                        <LinearLayout style="@style/SettingsSegments">
-                            <TextView android:id="@+id/rows0" style="@style/SettingsSegment" android:text="0" />
-                            <TextView android:id="@+id/rows1" style="@style/SettingsSegment" android:text="1" />
-                            <TextView android:id="@+id/rows2" style="@style/SettingsSegment" android:text="2" />
-                            <TextView android:id="@+id/rows3" style="@style/SettingsSegment" android:text="3" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <LinearLayout style="@style/SettingsCardStatic">
-                        <TextView style="@style/SettingsLabel" android:text="@string/settings_dock" />
-                        <LinearLayout style="@style/SettingsSegments">
-                            <TextView android:id="@+id/dock100" style="@style/SettingsSegment" android:text="100%" />
-                            <TextView android:id="@+id/dock70" style="@style/SettingsSegment" android:text="70%" />
-                            <TextView android:id="@+id/dock50" style="@style/SettingsSegment" android:text="50%" />
-                            <TextView android:id="@+id/dock30" style="@style/SettingsSegment" android:text="30%" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <LinearLayout style="@style/SettingsCardStatic">
                         <TextView style="@style/SettingsLabel" android:text="@string/settings_clock" />
                         <LinearLayout style="@style/SettingsSegments">
                             <TextView android:id="@+id/clockSystem" style="@style/SettingsSegment" android:text="@string/clock_format_system" />
@@ -173,7 +153,6 @@
             </ScrollView>
         </LinearLayout>
 
-        <!-- Live Home preview: the wallpaper, the dock and its panel opacity, and the grid rows below it. -->
         <LinearLayout
             android:layout_width="280dp"
             android:layout_height="match_parent"

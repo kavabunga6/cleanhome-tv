@@ -49,7 +49,6 @@
     <string name="launcher_settings">Налаштування лаунчера</string>
     <string name="native_settings">Налаштування виробника</string>
     <string name="columns_label">Застосунків у рядку</string>
-    <string name="rows_below_dock_label">Рядків під доком</string>
     <string name="wallpaper_label">Шпалери</string>
     <string name="wallpaper_state">Шпалери: %1$s</string>
     <string name="wallpaper_none">Немає</string>
@@ -93,13 +92,7 @@
     <string name="card_state_new">Нова</string>
     <string name="card_state_new_key">Новий ключ</string>
     <string name="card_state_new_label">Нова назва</string>
-    <string name="dock_edit">Редагувати док</string>
     <string name="power_menu">Перезапустити…</string>
-    <string name="dock_edit_hint">Виберіть місце в доку, яке треба змінити, і натисніть OK. «Назад» — завершити.</string>
-    <string name="dock_edit_pick_app">Тепер виберіть застосунок для цього місця та натисніть OK. «Назад» — вибрати інше місце.</string>
-    <string name="tile_add_to_dock">Додати в док</string>
-    <string name="tile_replace_in_dock">Замінити іншим застосунком</string>
-    <string name="dock_edit_pick_place">Виберіть місце в доку для цього застосунку та натисніть OK. «Назад» — скасувати.</string>
     <string name="reorder">Упорядкувати застосунки</string>
     <string name="tile_move">Перемістити</string>
     <string name="reorder_hint">OK бере застосунок, стрілки переміщують, «Назад» ставить на місце. Ще раз «Назад» — завершити.</string>
@@ -147,8 +140,7 @@
     <string name="race_countdown_minutes">%1$d хв</string>
     <string name="race_countdown_hours">%1$d год %2$d хв</string>
     <string name="race_countdown_days">%1$d дн %2$d год</string>
-    <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
-         last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
+
     <string name="last_opened">Востаннє відкрито %1$s</string>
     <string name="game_live">Наживо зараз</string>
     <string name="clock_format_system">Системний</string>

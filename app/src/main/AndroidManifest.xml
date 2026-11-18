@@ -9,14 +9,12 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
-         runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
-         FINE" rule does not apply here. -->
+    <!-- Android 10+ requires location permission to show the Wi-Fi network name. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         tools:ignore="CoarseFineLocation" />
     <!-- Puts the remote's accessibility helpers back after a force stop of this app took them off the enabled
-         list (ServiceRepair). Granted with pm grant by build-and-install when a helper is enabled. -->
+         list (ServiceRepair). -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <!-- YaOS (Yandex TV OS): HDMI, AV and the tuner all play in com.yandex.tv.live, whose activities require
@@ -151,8 +149,7 @@
             android:taskAffinity=""
             android:excludeFromRecents="true"
             android:theme="@style/Theme.TvHome" />
-        <!-- Home button for remotes that send KEYCODE_ALL_APPS (Xiaomi). Opt-in: HOME_KEY_SERVICE=1
-             build-and-install.sh; see HomeKeyService. -->
+        <!-- Optional Home button handler selected in Android accessibility settings. -->
         <service
             android:name=".HomeKeyService"
             android:label="@string/home_key_name"
@@ -214,7 +211,7 @@
             </intent-filter>
         </service>
 
-        <!-- tools/theme.sh writes the theme through this where the shell can't reach Android/data;
+        <!-- Authorised clients write the theme through this where the shell can't reach Android/data;
              see ThemeProvider. WRITE_SECURE_SETTINGS: the adb shell has it, ordinary apps don't. -->
         <provider
             android:name=".ThemeProvider"

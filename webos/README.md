@@ -6,7 +6,7 @@
 
 Компьютер понадобится для установки и обновления самого CleanHome. После установки список приложений и значки обновляются на телевизоре.
 
-1. На компьютере скачайте [CleanHome TV 0.4.4 для webOS](https://github.com/kavabunga6/cleanhome-tv/releases/download/tv-ui-3/dev.cleanhome.tv.webos_0.4.4_all.ipk). Подключите компьютер и телевизор к одной домашней сети.
+1. На компьютере скачайте [CleanHome TV 0.4.5 для webOS](https://github.com/kavabunga6/cleanhome-tv/releases/download/tv-ui-4/dev.cleanhome.tv.webos_0.4.5_all.ipk). Подключите компьютер и телевизор к одной домашней сети.
 2. На LG откройте магазин приложений, найдите **Developer Mode** и установите. Войдите под своей учётной записью LG Developer. Включите **Dev Mode Status** и дождитесь перезагрузки.
 3. Снова откройте Developer Mode. Включите **Key Server** и запишите IP-адрес с экрана. Код **Passphrase** понадобится при привязке компьютера. [Инструкция LG по Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
 4. На компьютере с Node.js и npm установите webOS CLI и добавьте телевизор. [Установка CLI от LG](https://webostv.developer.lge.com/develop/tools/cli-installation)
@@ -27,7 +27,7 @@
 5. Откройте терминал в папке со скачанным IPK и выполните:
 
    ```sh
-   ares-install --device my-lg dev.cleanhome.tv.webos_0.4.4_all.ipk
+   ares-install --device my-lg dev.cleanhome.tv.webos_0.4.5_all.ipk
    ares-launch --device my-lg dev.cleanhome.tv.webos
    ```
 
@@ -75,4 +75,4 @@ npm install --prefix webos/tests --no-save playwright@1.65.1
 node webos/tests/smoke.cjs
 ```
 
-Тест использует имитацию ответов LG и проверяет навигацию, запуск, изменение порядка и перетаскивание в 1920×1080 и 1280×720. Системное разрешение на чтение каталога проверяется на физическом LG.
+Тест использует имитацию ответов LG и проверяет навигацию, запуск, изменение порядка, перетаскивание и перенос сохранённой главной со старых версий в 1920×1080 и 1280×720. Системное разрешение на чтение каталога проверяется на физическом LG.

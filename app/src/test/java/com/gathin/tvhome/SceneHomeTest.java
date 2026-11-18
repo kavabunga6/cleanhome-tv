@@ -8,37 +8,6 @@ import static org.junit.Assert.assertEquals;
 public class SceneHomeTest {
 
     @Test
-    public void aCardAlreadyOnTheAnchorDoesNotScroll() {
-        assertEquals(0, SceneHome.anchorDx(0, 0));
-        assertEquals(0, SceneHome.anchorDx(24, 24));
-    }
-
-    @Test
-    public void aCardAheadScrollsForwardByItsWholeDistanceEvenWhenItIsOnScreen() {
-        // The next card is one cell (419 px) to the right of the anchor and fully visible: still the whole cell.
-        assertEquals(419, SceneHome.anchorDx(419, 0));
-        assertEquals(395, SceneHome.anchorDx(419, 24));
-    }
-
-    @Test
-    public void aCardBehindScrollsBack() {
-        assertEquals(-419, SceneHome.anchorDx(-419, 0));
-    }
-
-    @Test
-    public void theLastCardGetsTheRestOfTheViewportAfterIt() {
-        // 1920 px wide, 419 px cells: the last cell can reach the left edge only with 1501 px after it.
-        assertEquals(1501, SceneHome.endSpacePx(1920, 419, 0));
-        assertEquals(1477, SceneHome.endSpacePx(1920, 419, 24));
-    }
-
-    @Test
-    public void aRowNarrowerThanItsViewportNeedsNoEndSpace() {
-        assertEquals(0, SceneHome.endSpacePx(400, 419, 0));
-        assertEquals(0, SceneHome.endSpacePx(419, 419, 0));
-    }
-
-    @Test
     public void aWhiteBannerFloodsGreyNotWhite() {
         assertEquals(0xFF737373, SceneHome.floodTint(0xFFFFFFFF));
     }

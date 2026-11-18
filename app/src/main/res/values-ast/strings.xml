@@ -32,8 +32,6 @@
     <string name="launcher_settings">Axustes del llanzador</string>
     <string name="native_settings">Axustes del fabricante</string>
     <string name="columns_label">Aplicaciones por filera</string>
-    <string name="rows_below_dock_label">Fileres debaxo del dock</string>
-    <string name="dock_opacity_label">Opacidá de la barra del dock</string>
     <string name="wallpaper_label">Fondu</string>
     <string name="wallpaper_state">Fondu: %1$s</string>
     <string name="wallpaper_none">Nengún</string>
@@ -77,13 +75,7 @@
     <string name="card_state_new">Nueva</string>
     <string name="card_state_new_key">Clave nueva</string>
     <string name="card_state_new_label">Nome nuevu</string>
-    <string name="dock_edit">Editar el dock</string>
     <string name="power_menu">Reaniciar…</string>
-    <string name="dock_edit_hint">Escueyi\'l sitiu del dock que quies camudar y calca OK. Atrás pa finar.</string>
-    <string name="dock_edit_pick_app">Agora escueyi l\'aplicación que quies poner ende y calca OK. Atrás pa escoyer otru sitiu.</string>
-    <string name="tile_add_to_dock">Amestar al dock</string>
-    <string name="tile_replace_in_dock">Cambear por otra aplicación</string>
-    <string name="dock_edit_pick_place">Escueyi\'l sitiu del dock pa esta aplicación y calca OK. Atrás pa encaboxar.</string>
     <string name="reorder">Reordenar aplicaciones</string>
     <string name="tile_move">Mover</string>
     <string name="reorder_hint">D\'acuerdu escueye una aplicación, les fleches muévenla, Atrás suéltala. Atrás de nuevu pa finar.</string>

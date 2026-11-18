@@ -29,7 +29,6 @@
     <string name="launcher_settings">Käynnistimen asetukset</string>
     <string name="native_settings">Valmistajan asetukset</string>
     <string name="columns_label">Sovelluksia rivillä</string>
-    <string name="dock_opacity_label">Telakkapalkin peittävyys</string>
     <string name="animations_state">Animaatiot: %1$s</string>
     <string name="advanced_effects">Lisätehosteet</string>
     <string name="advanced_effects_state">Lisätehosteet: %1$s</string>
@@ -91,14 +90,7 @@
         <item quantity="one">%1$d sovellus</item>
         <item quantity="other">%1$d sovellusta</item>
     </plurals>
-    <string name="dock_edit">Muokkaa telakkaa</string>
     <string name="power_menu">Käynnistä uudelleen…</string>
-    <string name="dock_edit_hint">Valitse muutettava telakan paikka ja paina OK. Takaisin lopettaa.</string>
-    <string name="dock_edit_pick_app">Valitse nyt sinne tuleva sovellus ja paina OK. Takaisin valitsee toisen paikan.</string>
-    <string name="tile_add_to_dock">Lisää telakkaan</string>
-    <string name="tile_replace_in_dock">Korvaa toisella sovelluksella</string>
-    <string name="dock_edit_pick_place">Valitse telakan paikka tälle sovellukselle ja paina OK. Takaisin peruuttaa.</string>
-    <string name="rows_below_dock_label">Rivit telakan alla</string>
     <string name="wallpaper_label">Taustakuva</string>
     <string name="wallpaper_state">Taustakuva: %1$s</string>
     <string name="wallpaper_none">Ei taustakuvaa</string>

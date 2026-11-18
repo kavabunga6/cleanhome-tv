@@ -48,8 +48,6 @@
     <string name="launcher_settings">런처 설정</string>
     <string name="native_settings">TV 기본 설정</string>
     <string name="columns_label">한 줄당 앱 수</string>
-    <string name="rows_below_dock_label">독 아래 줄 수</string>
-    <string name="dock_opacity_label">독 배경 불투명도</string>
     <string name="wallpaper_label">배경화면</string>
     <string name="wallpaper_state">배경화면: %1$s</string>
     <string name="wallpaper_none">없음</string>
@@ -93,13 +91,7 @@
     <string name="card_state_new">새 카드</string>
     <string name="card_state_new_key">새 키</string>
     <string name="card_state_new_label">새 이름</string>
-    <string name="dock_edit">독 편집</string>
     <string name="power_menu">다시 시작…</string>
-    <string name="dock_edit_hint">바꿀 독 위치를 고르고 OK를 누르세요. 뒤로 가기(←) 버튼을 누르면 종료됩니다.</string>
-    <string name="dock_edit_pick_app">이제 그 자리에 넣을 앱을 고르고 OK를 누르세요. 뒤로 가기(←) 버튼을 누르면 다른 위치를 고릅니다.</string>
-    <string name="tile_add_to_dock">독에 추가</string>
-    <string name="tile_replace_in_dock">다른 앱으로 바꾸기</string>
-    <string name="dock_edit_pick_place">이 앱을 넣을 독 위치를 고르고 OK를 누르세요. 뒤로 가기(←) 버튼을 누르면 취소됩니다.</string>
     <string name="reorder">앱 순서 바꾸기</string>
     <string name="tile_move">이동</string>
     <string name="reorder_hint">OK로 앱을 선택 후 방향키로 옮기고, 뒤로 가기(←) 버튼으로 내려놓습니다. 뒤로 가기(←) 버튼을 한 번 더 누르면 종료됩니다.</string>
@@ -145,7 +137,7 @@
     <string name="race_countdown_minutes">%1$d분</string>
     <string name="race_countdown_hours">%1$d시간 %2$d분</string>
     <string name="race_countdown_days">%1$d일 %2$d시간</string>
-    <!-- Cinematic top shelf (cinematic_home): %1$s is when it was last opened, e.g. "5분 전". -->
+
     <string name="last_opened">마지막 실행 %1$s</string>
     <string name="game_live">지금 생중계</string>
     <string name="clock_format_system">시스템</string>

@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 public class TopFadeTest {
 
     @Test
-    public void theDockAtRestIsUntouched() {
+    public void theGridAtRestIsUntouched() {
         assertEquals(0f, TopFade.height(0, 72f), 0f);
         assertEquals(0f, TopFade.height(-5, 72f), 0f);   // an overscroll never fades anything
     }

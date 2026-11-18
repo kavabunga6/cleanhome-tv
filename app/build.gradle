@@ -8,13 +8,11 @@ android {
 
     defaultConfig {
         // Opt-in identity for firmware with a package-name HOME allowlist.
-        // Xiaomi: docs/devices/xiaomi-mitv-aetp0-dofus.md (com.ts.launcher).
-        // ColorOS TV: docs/devices/oppo-k9-55-oppocnm632.md (com.oneplus.tv.launcher2).
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 30
-        versionName "4.7.2"
+        versionCode 31
+        versionName "4.7.3"
     }
 
     buildTypes {

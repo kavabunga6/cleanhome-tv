@@ -5,7 +5,7 @@ For TVs where ADB is locked (Yandex TV Stations on YaOS and other vendor builds)
 in the same network, open the printed address in the TV browser and press the download button.
 Only the APK and the download page are served; nothing else from the computer is reachable.
 
-    python3 scripts/serve-apk.py CleanHome-4.6.apk [--port 8000]
+    python3 scripts/serve-apk.py path/to/CleanHome-TV.apk [--port 8000]
 """
 import argparse
 import html
@@ -34,7 +34,7 @@ PAGE = """<!doctype html>
   <a class="btn" href="/{name}" autofocus>Скачать / Download</a>
   <p>1. Нажмите кнопку и откройте скачанный файл.</p>
   <p>2. Разрешите браузеру установку приложений, если телевизор спросит.</p>
-  <p>3. Установите и нажмите «Домой» на пульте.</p>
+  <p>3. Установите и откройте CleanHome из списка приложений.</p>
 </main></body></html>
 """
 

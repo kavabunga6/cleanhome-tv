@@ -6,11 +6,6 @@ import android.text.format.DateUtils;
 
 import java.util.Locale;
 
-/**
- * When an app was last opened from Home, for the cinematic shelf's "Last opened" line: the launcher notes the
- * time whenever it opens an app. No permission and nothing read from other apps, so an app started some other
- * way (a remote's own Netflix button) shows the last time Home opened it.
- */
 final class LastOpened {
     private static final String PREFS = "last_opened";
 

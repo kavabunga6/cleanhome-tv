@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 /**
- * Lets tools/theme.sh write the theme files into {@link Config#dir} on firmware where the adb shell is
+ * Lets a privileged client write the theme files into {@link Config#dir} on firmware where the adb shell is
  * locked out of Android/data (TCL G07, Android 11). Only the files {@link ThemeFiles} allows, and only for
  * callers holding WRITE_SECURE_SETTINGS, which the adb shell has and ordinary apps cannot get.
  *

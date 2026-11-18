@@ -12,10 +12,10 @@ const assert=require('node:assert/strict'),path=require('node:path');
  if(o.method==='launch'){window.opens.push(o.parameters.id);return o.onSuccess({returnValue:true})}
  o.onSuccess({returnValue:true,exist:a.includes(o.parameters.appId)})},2);return {cancel(){}}}}};`}));
  await page.goto(require('node:url').pathToFileURL(process.env.CLEANHOME_SCENE_ENTRY || path.join(__dirname,'../build/package/app/index.html')).href);
- await page.locator('#shelf .tile').filter({hasText:'Lampa'}).waitFor();await page.evaluate(()=>document.fonts.ready);
- assert.ok(await page.locator('#shelf .tile').count()>5); await page.getByRole('button',{name:'Lampa',exact:true}).focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#hero').innerText(),'YouTube');
+ await page.locator('#home-grid .tile').filter({hasText:'Lampa'}).waitFor();await page.evaluate(()=>document.fonts.ready);
+ assert.ok(await page.locator('#home-grid .tile').count()>5); await page.getByRole('button',{name:'Lampa',exact:true}).focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#hero').innerText(),'YouTube');
  await page.keyboard.press('Enter');await page.waitForFunction(()=>window.opens.includes('youtube.leanback.v4'));
- const homeTile=page.locator('#shelf .tile').nth(1), homeId=await homeTile.getAttribute('data-id');
+ const homeTile=page.locator('#home-grid .tile').nth(1), homeId=await homeTile.getAttribute('data-id');
  const launches=await page.evaluate(()=>window.opens.length);
  for (const pointer of [false,true]) {
   await homeTile.focus();
@@ -32,7 +32,7 @@ const assert=require('node:assert/strict'),path=require('node:path');
  await page.locator('#settings').click();
  const gridOptions=page.getByRole('button',{name:'Сетка главного экрана',exact:true});
  await gridOptions.click();
- const columns=()=>page.locator('#shelf').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(/\s+/).length);
+ const columns=()=>page.locator('#home-grid').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(/\s+/).length);
  const originalCols=await columns();
  await page.keyboard.press('ArrowLeft');assert.equal(await columns(),originalCols-1);
  await page.keyboard.press('Escape');assert.equal(await columns(),originalCols);
@@ -49,7 +49,7 @@ const assert=require('node:assert/strict'),path=require('node:path');
  await page.locator('#library').click();await page.getByRole('button',{name:'Добавить по ID'}).click();
  await page.getByLabel('Идентификатор приложения webOS').fill('test.app');await page.getByLabel('Название приложения').fill('Гости');await page.getByRole('button',{name:'Добавить',exact:true}).click();
  await page.locator('#items button').filter({hasText:'Гости'}).waitFor();await page.keyboard.press('Escape');
- assert.ok((await page.locator('#shelf').innerText()).includes('Гости'));
+ assert.ok((await page.locator('#home-grid').innerText()).includes('Гости'));
  await page.locator('#library').click();
  const visibleIds=()=>page.locator('#items .library-app').evaluateAll(els=>els.map(el=>el.dataset.id));
  const before=await visibleIds();
@@ -58,9 +58,9 @@ const assert=require('node:assert/strict'),path=require('node:path');
  const second=arranged[1];await page.locator('#sort-grid button').nth(1).click();await page.locator('#sort-grid button').nth(5).click();
  arranged=await visibleIds();assert.equal(arranged[5],second);
  await page.getByRole('button',{name:'Готово',exact:true}).click();assert.deepEqual(await visibleIds(),arranged);
- await page.reload();await page.waitForFunction(()=>document.querySelectorAll('#shelf [data-id]').length>5);
+ await page.reload();await page.waitForFunction(()=>document.querySelectorAll('#home-grid [data-id]').length>5);
  await page.locator('#library').click();assert.deepEqual(await visibleIds(),arranged);
- const shelf=await page.locator('#shelf [data-id]').evaluateAll(els=>els.map(el=>el.dataset.id));assert.deepEqual(shelf,arranged.filter(id=>shelf.includes(id)));
+ const grid=await page.locator('#home-grid [data-id]').evaluateAll(els=>els.map(el=>el.dataset.id));assert.deepEqual(grid,arranged.filter(id=>grid.includes(id)));
  await page.locator('#library-order').click();await page.keyboard.press('Enter');await page.keyboard.press('ArrowRight');await page.keyboard.press('Escape');assert.deepEqual(await visibleIds(),arranged);
  await page.keyboard.press('Escape');
  await page.locator('#library').click();
@@ -84,7 +84,27 @@ const assert=require('node:assert/strict'),path=require('node:path');
  await page.keyboard.press('Enter');await page.waitForFunction(n=>window.opens.length===n+1,opened);
  await page.keyboard.press('Escape');await page.keyboard.press('Escape');
  await page.locator('#inputs').click();await page.getByRole('button',{name:'HDMI 1'}).click();await page.waitForFunction(()=>window.opens.includes('com.webos.app.hdmi1'));await page.keyboard.press('Escape');
- await page.locator('#shelf .tile').first().hover();
+ await page.locator('#home-grid .tile').first().hover();
+ // Exercise preferences written by earlier versions before mounting the release UI.
+ for (const fixture of [
+   {old:['ivi','youtube.leanback.v4'],expected:['ivi','youtube.leanback.v4']},
+   {old:[],expected:[]},
+   {old:['ivi'],current:['youtube.leanback.v4'],expected:['youtube.leanback.v4']}
+ ]) {
+   await page.evaluate(({old,current})=>{
+     localStorage.setItem('cleanhome.scene.v1',JSON.stringify({dock:old,homeApps:current}));
+   },fixture);
+   await page.reload();
+   if (fixture.expected.length) {
+     await page.locator('#home-grid [data-id]').first().waitFor();
+   } else {
+     await page.getByText('Выберите приложения для главного экрана.',{exact:true}).waitFor();
+   }
+   const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('cleanhome.scene.v1')));
+   assert.deepEqual(state.homeApps,fixture.expected);
+   assert.ok(!Object.hasOwn(state,'dock'));
+   assert.deepEqual(await page.locator('#home-grid [data-id]').evaluateAll(tiles=>tiles.map(tile=>tile.dataset.id)),fixture.expected);
+ }
  assert.deepEqual(errors,[]);await page.close();console.log(width+'x'+height+' PASS');
  }
  } finally{await browser.close()}

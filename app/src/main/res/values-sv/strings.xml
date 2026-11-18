@@ -35,8 +35,6 @@
     <string name="launcher_settings">Startskärmsinställningar</string>
     <string name="native_settings">Tillverkarens inställningar</string>
     <string name="columns_label">Appar per rad</string>
-    <string name="rows_below_dock_label">Rader under favoritraden</string>
-    <string name="dock_opacity_label">Favoritradens opacitet</string>
     <string name="wallpaper_label">Bakgrundsbild</string>
     <string name="wallpaper_state">Bakgrundsbild: %1$s</string>
     <string name="wallpaper_none">Ingen</string>
@@ -80,13 +78,7 @@
     <string name="card_state_new">Nytt</string>
     <string name="card_state_new_key">Ny nyckel</string>
     <string name="card_state_new_label">Nytt namn</string>
-    <string name="dock_edit">Redigera favoritraden</string>
     <string name="power_menu">Starta om…</string>
-    <string name="dock_edit_hint">Välj platsen i favoritraden som du vill ändra och tryck OK. Tillbaka för att avsluta.</string>
-    <string name="dock_edit_pick_app">Välj nu appen som ska ligga där och tryck OK. Tillbaka för att välja en annan plats.</string>
-    <string name="tile_add_to_dock">Lägg till i favoritraden</string>
-    <string name="tile_replace_in_dock">Ersätt med en annan app</string>
-    <string name="dock_edit_pick_place">Välj en plats i favoritraden för appen och tryck OK. Tillbaka för att avbryta.</string>
     <string name="reorder">Ändra ordning på appar</string>
     <string name="tile_move">Flytta</string>
     <string name="reorder_hint">OK plockar upp en app, pilarna flyttar den, Tillbaka placerar den. Tillbaka igen för att avsluta.</string>

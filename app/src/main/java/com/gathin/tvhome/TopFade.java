@@ -11,14 +11,6 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-/**
- * fade_rows: the rows fade out as they scroll up under the clock, instead of being cut off at the grid's top
- * edge. It erases the top of the grid's own picture, so whatever is behind Home (a wallpaper, the sky) shows
- * through; the grid draws into a hardware layer for that ({@link #attach}), or the erasing would punch through
- * the whole window. Android's own requiresFadingEdge draws its fade in the wrong place with this grid's
- * clipChildren=false, so it is not used. The fade grows in over the first pixels of scrolling, so the dock at
- * rest is untouched.
- */
 final class TopFade extends RecyclerView.ItemDecoration {
 
     private final float length;

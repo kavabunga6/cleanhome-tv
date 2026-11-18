@@ -51,6 +51,7 @@ import java.util.function.Supplier;
 final class Cards {
 
     /** One place for the names a module declares; see docs/specs/card.md. */
+    // External modules advertise this Android intent category to add cards to the grid.
     static final String CATEGORY = "com.gathin.tvhome.category.DOCK_CARD";
     static final String META_DATA = "com.gathin.tvhome.card";
     static final int SPEC_SUPPORTED = 1;

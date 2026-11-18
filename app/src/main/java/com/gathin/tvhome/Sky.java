@@ -1,14 +1,5 @@
 package com.gathin.tvhome;
 
-/**
- * Time-of-day sky palette for the optional "sunset" backdrop (config.xml, sky_intensity).
- *
- * Pure maths, no Android types and no clock of its own: the caller passes minutes since midnight,
- * so the palette can be tested on the JVM. The colours are interpolated between a handful of
- * anchor points through the day, which is what makes the backdrop drift from night to dawn to
- * sunset instead of switching at fixed hours. Every colour stays dark enough for the white
- * text, the hero name and the dock band to keep their contrast.
- */
 final class Sky {
 
     /** One anchor: a minute of the day and the values the palette takes exactly there. */

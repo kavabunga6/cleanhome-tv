@@ -97,7 +97,7 @@ final class AppLibraryDialog {
     private long catalogTime;
     private PopupWindow actionPopup;
     private RecyclerView catalog;
-    private FrameLayout shelf;
+    private FrameLayout listContainer;
     private GlassView highlight;
     private SpringAnimation spring;
     private float scrollOffset;
@@ -114,7 +114,7 @@ final class AppLibraryDialog {
     private void highlight(View card, boolean animate) {
         if (highlight == null || card.getParent() == null) return;
         Rect rect = new Rect(0, 0, card.getWidth(), card.getHeight());
-        shelf.offsetDescendantRectToMyCoords(card, rect);
+        listContainer.offsetDescendantRectToMyCoords(card, rect);
         ViewGroup.LayoutParams lp = highlight.getLayoutParams();
         lp.width = rect.width() + dp(12);
         lp.height = rect.height() + dp(12);
@@ -385,10 +385,10 @@ final class AppLibraryDialog {
             panel.requestFocus();
             return;
         }
-        shelf = new FrameLayout(activity);
+        listContainer = new FrameLayout(activity);
         // The glass uses physical x coordinates; only the catalogue mirrors its item order.
-        shelf.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        shelf.setClipChildren(false);
+        listContainer.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        listContainer.setClipChildren(false);
         RecyclerView list = new RecyclerView(activity);
         list.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         catalog = list;
@@ -400,13 +400,13 @@ final class AppLibraryDialog {
         list.setClipToPadding(false);
         list.setPadding(dp(10), dp(8), dp(10), dp(8));
         list.setAdapter(new Catalog());
-        shelf.addView(list, new FrameLayout.LayoutParams(-1, -1));
+        listContainer.addView(list, new FrameLayout.LayoutParams(-1, -1));
         highlight = new GlassView(activity, null);
         highlight.setRadius(dp(20));
         highlight.setAlpha(0f);
         highlight.setFocusable(false);
         highlight.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        shelf.addView(highlight, new FrameLayout.LayoutParams(dp(144), dp(180)));
+        listContainer.addView(highlight, new FrameLayout.LayoutParams(dp(144), dp(180)));
         scrollOffset = 0;
         spring = new SpringAnimation(highlight, new FloatPropertyCompat<View>("libraryScrollX") {
             @Override public float getValue(View view) { return view.getTranslationX() + scrollOffset; }
@@ -420,7 +420,7 @@ final class AppLibraryDialog {
                 highlight.setTranslationX(highlight.getTranslationX() - dx);
             }
         });
-        panel.addView(shelf, new LinearLayout.LayoutParams(-1, 0, 1));
+        panel.addView(listContainer, new LinearLayout.LayoutParams(-1, 0, 1));
         int position = Math.min(selectedPosition, apps.size() - 1);
         for (int i = 0; i < apps.size(); i++) {
             if (apps.get(i).activityInfo.packageName.equals(selectedPackage)) { position = i; break; }

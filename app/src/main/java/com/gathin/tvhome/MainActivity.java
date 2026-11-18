@@ -99,15 +99,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
- */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void attachBaseContext(android.content.Context base) {
         super.attachBaseContext(LauncherLocale.wrap(base));   // locale
     }
-
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
@@ -116,7 +112,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static final String ACTION_APP_LIBRARY = "com.gathin.tvhome.action.APP_LIBRARY";
     /** The system input switcher, forwarded here by InputsRequestActivity while handle_view_inputs is on. */
     static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
-    /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
+
     static int COLUMNS = 4;
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
@@ -160,13 +156,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WallpaperPlayer wallpaperPlayer;
     private GlassView glass;
     private View ambient;
-    private TextView heroName;
-    /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
-    private View hero;
-    private TextView heroMeta;
-    private LinearLayout heroDots;
-    /** Cinematic top shelf (config.xml, cinematic_home): the focused dock app's artwork behind a larger shelf. */
-    private boolean cinematic;
     /** The "Scene" home screen (config.xml, scene_home); Config has already switched on the options it builds on. */
     private boolean scene;
     /** config.xml ambient_glow, overridable by a theme. Off: the glow view is gone and no fade or colour animator
@@ -176,24 +165,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean appGlow;
     /** config.xml glow_style: the shape setAmbient paints the glow mask in. */
     private String glowStyle;
-    /** config.xml cinematic_white_focus: the cinematic shelf keeps the white highlight. */
-    private boolean cinematicWhiteFocus;
-    private ImageView heroArt;
-    /** config.xml cinematic_dots: false leaves the dock position dots out of the cinematic shelf. */
-    private boolean heroDotsShown = true;
-    /** The artwork's opacity behind the cinematic shelf (config.xml cinematic_art); 0 leaves it out. */
-    private float heroArtAlpha = 0.5f;
-    /** Softened artwork per app (HeroArt, about 5 KB each), made the first time its dock tile is focused. */
-    private final Map<String, Bitmap> heroArtCache = new HashMap<>();
-    /** The app whose artwork heroArt shows, so focusing it again only fades it back in. */
-    private String heroArtKey;
-    /** The focus glow's colour while the cinematic shelf tints it, 0 for plain white glass. */
     private int glassAccent;
     private int ambientColor = -1;
     private ValueAnimator ambientAnimator;
     /** config.xml glow_snap: the glow takes a new colour in one frame instead of the dip-and-fade. */
     private boolean glowSnap;
-    private boolean heroShown;
     private boolean animations;
     private boolean advancedEffects;
     private TextView greeting;
@@ -248,8 +224,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // How far the grid has scrolled the glass. springY works without it, in grid content space, so a
     // scroll moves the glass in lockstep with its tile instead of becoming a moving spring target.
     private float glassScrollShift;
-    /** The same for springX, when single_row scrolls the grid sideways. */
-    private float glassScrollShiftX;
     private int glassCardW;   // width of the tile the glass was last fitted to
     /**
      * The focused tile's rect in root coordinates as {@link #onTileFocused} last fitted the glass to it. The size
@@ -276,10 +250,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean settingsKeyClearTask;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     private boolean reducedMotion;
-    /** config.xml dock_row: the first row is a separate dock (band, parked low, top shelf) rather than plain grid. */
-    private boolean dockRow;
-    /** config single_row: every app in the dock's row, scrolling sideways, no grid below. */
-    private boolean singleRow;
     /** The highlight springs past its target (config.xml, focus_overshoot); false goes straight there. */
     private boolean focusOvershoot;
     /** Festive skin from the theme (see Festival); applied while it is active today. */
@@ -357,24 +327,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String movingKey;
     /** Tile order when reorder mode started, to save only when something moved. */
     private List<String> orderAtStart;
-    /**
-     * fill_dock false: tiles in the dock when reorder mode started, plus those carried or swapped into it since
-     * (#499). A grid app that only slid into a free slot, which reorder mode does not show, is not one of them.
-     */
-    private Set<String> dockInSession;
-    /** fill_dock false: how many dock slots held an app when reorder mode started. */
-    private int dockedAtStart;
     private View btnReorder;
-    /** dock_apps as loaded (config.xml or a theme): a saved Order only applies while these are unchanged. */
-    private List<String> dockApps;
-    /** fill_dock false: the dock can have empty slots, which reorder mode leaves out and restores afterwards. */
-    private boolean fillDockLeavesSlots;
-    /** Edit-dock mode (Settings menu): a reorder session that swaps one chosen app into one dock place. */
-    private boolean dockEditing;
-    /** Dock place being changed in edit-dock mode, or -1 while the place is still being chosen. */
-    private int dockEditSlot = -1;
-    /** Tile menu's "Add to dock": the app waiting for a dock place in edit-dock mode, or null. */
-    private String dockEditAppKey;
     private AppLibraryDialog appLibrary;
     private boolean appLibrarySelection;
     private boolean libraryOkOpens;
@@ -484,7 +437,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!useSharedScene) StartupWarmup.start(this);
         installBundledTheme();
         requestHomeRoleIfNeeded();
-        // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
+        // config.xml, overlaid by config.json from a pushed theme.
         Config cfg = Config.load(this);
         wallpaperPlayer = new WallpaperPlayer(this, cfg);
         setContentView(R.layout.activity_main);
@@ -496,7 +449,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
-        // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
+        // off the list (needs WRITE_SECURE_SETTINGS).
         if (cfg.restoreKeyServices) ServiceRepair.restore(this);
         settingsRevision = settingsRevision();
         applyViewInputsHandler(cfg.handleViewInputs);
@@ -507,8 +460,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         animations = cfg.animations;
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
-        dockRow = cfg.dockRow;
-        singleRow = cfg.singleRow;
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
@@ -559,24 +510,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glowSnap = cfg.glowSnap;
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
-        heroName = findViewById(R.id.heroName);
-        hero = findViewById(R.id.hero);
-        // The hero is now a group (name, and the cinematic lines): without this every fade of the default
-        // shelf would render it through an offscreen buffer first, as the glow above notes.
-        hero.forceHasOverlappingRendering(false);
-        heroMeta = findViewById(R.id.heroMeta);
-        heroDots = findViewById(R.id.heroDots);
-        heroArt = findViewById(R.id.heroArt);
         scene = cfg.sceneHome;
-        cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
-        heroDotsShown = cfg.cinematicDots;
-        cinematicWhiteFocus = cfg.cinematicWhiteFocus;
-        heroArtAlpha = cfg.cinematicArt / 100f;
-        if (cinematic) setUpCinematicShelf(cfg.cinematicScrim);
-        // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
-        // still follows the dock.
-        if (!cfg.dockTitle) hero.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
         clockBlock = findViewById(R.id.leftBlock);
         clockRefresh = new ClockRefresh(clockBlock);
@@ -652,50 +587,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid = findViewById(R.id.grid);
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
         // Mirror only the app grid; the header and other locales keep their own layouts.
-        // single_row: one span laid out sideways, so the same adapter, glass and dock band serve a scrolling row.
-        grid.setLayoutManager(new GridLayoutManager(this, singleRow ? 1 : COLUMNS,
-                singleRow ? RecyclerView.HORIZONTAL : RecyclerView.VERTICAL, false) {
+        grid.setLayoutManager(new GridLayoutManager(this, COLUMNS) {
             @Override
             protected boolean isLayoutRTL() {
                 return rtlAppGrid;
             }
 
-            /**
-             * Every "bring this tile on screen" scroll lands here, both RecyclerView's own on focus and
-             * onTileFocused's. The stock version treats the grid's top padding as the visible top, but that
-             * padding only pushes the dock down the screen: grid rows scroll up into it. With the stock rule,
-             * Up into a row above the padding dragged that row down to the padding line, cut it off at the
-             * bottom of the screen and could scroll the focused tile out entirely, dropping focus into the
-             * top bar. Grid tiles now scroll just enough to show the rect between the grid's top edge and its
-             * bottom; dock tiles are left to onTileFocused, which parks the dock row on the padding line.
-             */
             @Override
             public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
                                                          @NonNull Rect rect, boolean immediate,
                                                          boolean focusedChildVisible) {
-                if (singleRow) {
-                    // Sideways: scroll just enough to bring the tile's cell inside the padding. Cells are a
-                    // column wide, so the row moves a whole tile at a time and the tiles stay on the columns.
-                    // The whole cell, not the card rect passed in: the card is narrower and centred in it.
-                    int left = child.getLeft();
-                    int right = child.getRight();
-                    int dx;
-                    // The scene's focused card always stands on the left edge (see the end space added below).
-                    if (scene && !rtlAppGrid) dx = SceneHome.anchorDx(left, getPaddingLeft());
-                    else if (left < getPaddingLeft()) dx = left - getPaddingLeft();
-                    else if (right > getWidth() - getPaddingRight()) dx = right - (getWidth() - getPaddingRight());
-                    else dx = 0;
-                    if (dx == 0) return false;
-                    if (immediate || reducedMotion || !animations) parent.scrollBy(dx, 0);
-                    else parent.smoothScrollBy(dx, 0);
-                    return true;
-                }
-                if (dockRow && getPosition(child) < COLUMNS) return false;
                 int top = child.getTop() + rect.top;
                 int bottom = top + rect.height();
-                // A row already fully on screen stays put, even inside the bottom padding (the last row
-                // rows_below_dock leaves visible ends there; nudging it up was the bug). A row that has to scroll
-                // in still stops at the padding line, clear of the screen edge, as before.
                 int limitBottom = getHeight() - getPaddingBottom();
                 int dy;
                 if (top < 0) dy = top;
@@ -707,24 +610,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
         });
-        if (scene && singleRow && !rtlAppGrid) {
-            // The scene's first card stands where the headline starts: no left padding. After the last card goes
-            // room for the rest of the screen, so the last card can scroll up to that place as well. An item
-            // decoration, not the grid's padding: the cells' width follows the grid's inner width (AppAdapter).
-            grid.setPadding(0, grid.getPaddingTop(), grid.getPaddingRight(), grid.getPaddingBottom());
-            grid.addItemDecoration(new RecyclerView.ItemDecoration() {
-                @Override
-                public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent,
-                                           @NonNull RecyclerView.State state) {
-                    if (parent.getChildAdapterPosition(view) != state.getItemCount() - 1) return;
-                    int cell = view.getLayoutParams().width;
-                    if (cell <= 0) cell = (parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight()) / COLUMNS;
-                    outRect.right = SceneHome.endSpacePx(parent.getWidth(), cell, parent.getPaddingLeft());
-                }
-            });
-        }
         ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override public int getSpanSize(int position) { return !singleRow && adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1; }
+            @Override public int getSpanSize(int position) { return adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1; }
         });
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
@@ -742,8 +629,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void onChildViewDetachedFromWindow(@NonNull View v) {
             }
         });
-        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
-                singleRow, cfg.dockBandAll));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
         if (animations && !reducedMotion) {
@@ -751,55 +636,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
-        dockApps = cfg.dockApps;
-        fillDockLeavesSlots = !cfg.fillDock;
-        Order savedOrder = Order.load(Order.file(this));
-        adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
+        adapter.setSavedOrder(Order.ranks(Order.load(Order.file(this))));
         grid.setAdapter(adapter);
 
-        // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
-        // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
-        int rowsBelowDock = cfg.rowsBelowDock;
+        grid.setPadding(grid.getPaddingLeft(), (int) (12 * density), grid.getPaddingRight(), grid.getPaddingBottom());
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-            int h = b - t;
-            // Item height follows the tile size, which follows the columns and the rows that must fit (AppAdapter.tileWidthPx).
-            int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
-            int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
-            int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
-            int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
-            int gridRows = itemH * rowsBelowDock;
-            // Keep the hero below the header when the library is enabled on a short screen,
-            // even when the theme requests an extra visible row below the dock.
-            int shelfClearance = cfg.appLibrary ? hero.getMeasuredHeight() + (int) (40 * density) : 0;
-            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
-            // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
-            // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
-            if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
-            // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
-            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
-            // A single row never shows the names under its tiles (the title above the row names the app), so the
-            // 7dp gap and 22dp label item_app.xml keeps for them would only lift the row: sit it that much lower.
-            if (singleRow && !cfg.alwaysShowNames) want += (int) (29 * density);
-            if (grid.getPaddingTop() != want) {
-                grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
-                // A vertical grid parks the dock on the new padding line by scrolling (onTileFocused); a sideways
-                // row cannot scroll vertically, and the layout request made from inside this layout pass is
-                // dropped, so lay the row out again on the next frame. The glass and the title were placed for the
-                // old position, so fit them again once it has moved.
-                if (singleRow) grid.post(() -> {
-                    grid.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            grid.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            int pos = Math.max(0, Math.min(lastFocused, adapter.appCount() - 1));
-                            RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
-                            View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
-                            if (card != null && card.isFocused()) onTileFocused(pos, card);
-                        }
-                    });
-                    grid.requestLayout();
-                });
-            }
             // Cold start or column count > 4: the first focus can run before the grid has its final width or
             // padding, leaving the glass at the XML design size until a key is pressed.
             grid.post(this::refitGlass);
@@ -813,16 +654,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
                 glass.setTranslationY(glass.getTranslationY() - dy);
-                // single_row scrolls sideways: the same bookkeeping on the other axis.
-                if (dx != 0) {
-                    glassTargetX -= dx;
-                    glassScrollShiftX -= dx;
-                    glass.setTranslationX(glass.getTranslationX() - dx);
-                }
             }
         });
 
-        // game_day: the panel above the dock rides up with the cards instead of being covered by them, and fades
         // out by the time it reaches the clock. The grid's own offset is read, so a jump (Home, a restored focus)
         // lands right too.
         if (gameDay != null) {
@@ -839,17 +673,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         // Liquid feel: soft springs on the highlight's position.
-        springX = new SpringAnimation(glass, new FloatPropertyCompat<View>("glassContentX") {
-            @Override
-            public float getValue(View v) {
-                return v.getTranslationX() - glassScrollShiftX;
-            }
-
-            @Override
-            public void setValue(View v, float value) {
-                v.setTranslationX(value + glassScrollShiftX);
-            }
-        });
+        springX = new SpringAnimation(glass, SpringAnimation.TRANSLATION_X);
         springY = new SpringAnimation(glass, new FloatPropertyCompat<View>("glassContentY") {
             @Override
             public float getValue(View v) {
@@ -963,8 +787,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                // Back to the dock tile Up came from, not wherever the focus finder lands.
-                focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
+
+                focusTile(lastFocused % COLUMNS);
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
@@ -1030,7 +854,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Last, so the first picture has had the whole of onCreate to finish decoding.
         // Keep the existing Home component, startup rules and firmware-specific remote handlers.
         if (useSharedScene) {
-            sharedScene = new SharedTvScene(this, cfg);
+            try {
+                sharedScene = new SharedTvScene(this, cfg);
+            } catch (RuntimeException unavailable) {
+                android.util.Log.w("CleanHome", "WebView initialization failed, using native grid", unavailable);
+                StartupWarmup.start(this);
+            }
+        }
+        if (sharedScene != null) {
             root.setVisibility(View.GONE);
             addContentView(sharedScene, new FrameLayout.LayoutParams(-1, -1));
             sharedScene.requestFocus();
@@ -1117,11 +948,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return true;
     }
 
-    /**
-     * Home pressed while Home is already in front: singleTask delivers it here, then onResume runs.
-     * Back to the top with the first dock tile focused, like the stock launcher. Back from an app
-     * never comes this way, so returning to the app you left from is unchanged (#118).
-     */
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -1204,9 +1030,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         updatePanel();
-        // Back from an app opened from its tile, focus is still on that tile, so the cinematic "Last opened" line kept
-        // the time from before this launch ("2 days ago" right after opening it). Refresh it.
-        if (cinematic && heroMeta != null && lastFocused >= 0 && lastFocused < adapter.appCount()) updateHeroMeta(lastFocused);
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -1290,11 +1113,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (restoreFocus) {
             glassShown = false;
             glass.setAlpha(0f);
-            heroShown = false;
-            hero.setAlpha(0f);
             ambient.setAlpha(0f);
-            heroArt.animate().cancel();
-            heroArt.setAlpha(0f);
         }
         if (rebuild) reloadTiles();
         if (animate && entrance && animations && !reducedMotion) {
@@ -1312,7 +1131,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int pos = adapter.positionOf(returnKey);
             lastFocused = Math.max(0, Math.min(pos >= 0 ? pos : returnSlot, adapter.appCount() - 1));
             lastFocusedKey = adapter.keyAt(lastFocused);
-            if (pos < 0) hideHero();
             // A newly installed app may have brought a card with it.
             tilesReady = true;
             startPendingSettingsReorder();
@@ -1347,8 +1165,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int returnSlot = lastFocused;
         final List<Cards.Card> none = Collections.emptyList();
         // An updated app may bring new artwork; the backdrop is cheap to make again.
-        heroArtCache.clear();
-        heroArtKey = null;
         // One LEANBACK query for both the tiles and the card checks.
         final List<ResolveInfo> leanback = getPackageManager().queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
@@ -1406,9 +1222,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         stopAmbientAnimation();
-        hero.animate().cancel();
         ambient.animate().cancel();
-        heroArt.animate().cancel();
         handler.removeCallbacks(minuteTick);
         handler.removeCallbacks(openWhenOnline);
         startPending = null;   // leaving Home before the network came back: the boot's app stays closed
@@ -1450,8 +1264,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // they hold) would stay attached until Home comes back. setAdapter(null) recycles them now.
         grid.setAdapter(null);
         grid.getRecycledViewPool().clear();
-        heroArtCache.clear();
-        heroArtKey = null;
         wallpaperPlayer.releaseForMemoryPressure();
         tileRefresh.invalidate();
     }
@@ -1513,10 +1325,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Blue the glass turns while reorder mode is on. */
     private static final int REORDER_ACCENT = 0xFF6EC1FF;
 
-    /**
-     * While reorder mode or edit-dock mode is on, every key comes here first and ReorderKeys says what it does.
-     * Other keys (volume, Home) pass through; leaving the launcher ends the mode and saves.
-     */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (gestureHint != null && event.getAction() == KeyEvent.ACTION_DOWN) dismissGestureHint();
@@ -1541,7 +1349,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (position >= 0 && position < adapter.appCount()
                     && !getPackageName().equals(adapter.packageAt(position))) {
                 if (RemoteKeys.menuReleased(event.getAction(), event.getFlags())) {
-                    onTileLongPress(position, getCurrentFocus());
+                    showTileMenu(position, getCurrentFocus());
                 }
                 return true;
             }
@@ -1549,13 +1357,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!reordering) return super.dispatchKeyEvent(event);
         View focus = getCurrentFocus();
         int pos = focusedTilePosition();
-        ReorderKeys.Mode mode = ReorderKeys.mode(reordering, movingKey != null, dockEditing, dockEditSlot,
-                dockEditAppKey != null);
+        ReorderKeys.Mode mode = movingKey == null ? ReorderKeys.Mode.BROWSE : ReorderKeys.Mode.CARRY;
         switch (ReorderKeys.decide(mode, ReorderKeys.key(event.getKeyCode()),
                 event.getAction() == KeyEvent.ACTION_DOWN,
                 event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled(),
                 focus != null && focus.getId() == R.id.btnLibrary, grid.hasFocus(),
-                pos, adapter.movableCount(), COLUMNS)) {
+                pos)) {
             case CONSUME:
                 return true;
             case MOVE:
@@ -1573,28 +1380,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             case END_AND_OPEN_LIBRARY:
                 endReorder();
                 onLibraryRequested();
-                return true;
-            case DOCK_BACK_TO_PLACE: {
-                int slot = dockEditSlot;
-                dockEditSlot = -1;
-                dimOthers();
-                focusTile(slot);
-                return true;
-            }
-            case DOCK_CHOOSE_PLACE:
-                dockEditSlot = pos;
-                dimOthers();
-                focusTile(Math.min(COLUMNS, adapter.movableCount() - 1));
-                Toast.makeText(this, R.string.dock_edit_pick_app, Toast.LENGTH_LONG).show();
-                return true;
-            case DOCK_SWAP_WAITING_APP: {
-                int from = adapter.positionOf(dockEditAppKey);
-                if (from >= 0) swapIntoDock(pos, from);
-                else endReorder();
-                return true;
-            }
-            case DOCK_SWAP_INTO_PLACE:
-                swapIntoDock(dockEditSlot, pos);
                 return true;
             default:
                 return super.dispatchKeyEvent(event);
@@ -1619,70 +1404,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
     }
 
-    /** The start shared by reorder and edit-dock mode. False when there is nothing to move. */
     private boolean beginReorder() {
         if (adapter.movableCount() < 2) return false;
-        // Before the reload below: once it has dropped the empty slots, the dock row also shows grid apps.
-        dockInSession = new HashSet<>();
-        dockedAtStart = adapter.dockFilled();
-        for (int i = 0; i < Math.min(dockedAtStart, adapter.movableCount()); i++) dockInSession.add(adapter.keyAt(i));
-        adapter.setReordering(true);
-        if (adapter.hasEmptySlots()) reloadTiles();   // every position must hold a tile that can move
         reordering = true;
         orderAtStart = adapter.movableKeys();
         glass.setAccent(REORDER_ACCENT);
         btnReorder.setActivated(true);
         return true;
-    }
-
-    /** Edit dock (Settings menu): focus goes to the first dock place, which OK then chooses. */
-    private void startDockEdit() {
-        if (reordering) endReorder();
-        if (!beginReorder()) return;
-        dockEditing = true;
-        dockEditSlot = -1;
-        focusTile(0);
-        Toast.makeText(this, R.string.dock_edit_hint, Toast.LENGTH_LONG).show();
-    }
-
-    /**
-     * Edit-dock mode started from the tile menu. A dock app: its place is already chosen, so focus goes to the grid
-     * for the app to put there. A grid app: it is already chosen, so focus goes to the dock for the place.
-     */
-    private void startDockEditFor(String key, boolean inDock) {
-        if (reordering) endReorder();
-        if (!beginReorder()) return;
-        dockEditing = true;
-        int pos = adapter.positionOf(key);   // beginReorder can rebuild the tiles
-        int n = adapter.movableCount();
-        if (pos < 0) {
-            endReorder();
-        } else if (inDock) {
-            dockEditSlot = pos;
-            dimOthers();
-            focusTile(Math.min(COLUMNS, n - 1));
-            Toast.makeText(this, R.string.dock_edit_pick_app, Toast.LENGTH_LONG).show();
-        } else {
-            dockEditAppKey = key;
-            focusTile(0);
-            Toast.makeText(this, R.string.dock_edit_pick_place, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    /** Puts the app at pos into dock place slot, and the app that was there where the chosen one was; then saves. */
-    private void swapIntoDock(int slot, int pos) {
-        String slotKey = adapter.keyAt(slot);
-        if (pos != slot) {
-            keepScroll(() -> {
-                adapter.move(pos, slot);
-                adapter.move(adapter.positionOf(slotKey), pos);
-            });
-            if (pos >= COLUMNS) dockInSession.remove(slotKey);
-        }
-        // Outside the check: with no empty slots shown, the chosen app may already sit in the free place.
-        dockInSession.add(adapter.keyAt(slot));
-        endReorder();
-        refocusAfterLayout(slot);
     }
 
     private void pickUp(int pos) {
@@ -1705,46 +1433,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** A tile's alpha: dim unless it is the carried one, or, in edit-dock mode, a dock tile other than the chosen place. */
     private float tileAlpha(int pos) {
         if (movingKey != null) {
             return pos != RecyclerView.NO_POSITION && movingKey.equals(adapter.keyAt(pos)) ? 1f : 0.45f;
         }
-        if (dockEditSlot >= 0 && pos >= 0 && pos < COLUMNS && pos != dockEditSlot) return 0.45f;
         return 1f;
     }
 
     /** Ends the mode and saves the order if it changed since the mode started. */
     private void endReorder() {
         if (!reordering) return;
-        dockEditing = false;
-        dockEditSlot = -1;
-        dockEditAppKey = null;
         drop();
         reordering = false;
-        adapter.setReordering(false);
         glass.setAccent(festive ? festival.accentColor() : 0);
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
         orderAtStart = null;
-        // fill_dock false: the dock is what the owner put there, saved with its size, so the empty slots that
-        // come back after the mode go after it (#499). With fill_dock true every dock slot holds an app anyway.
-        int docked = -1;
-        if (fillDockLeavesSlots) {
-            docked = DockSlots.dockCount(keys, COLUMNS, dockInSession);
-            keys = DockSlots.dockFirst(keys, COLUMNS, dockInSession);
-        }
-        dockInSession = null;
-        if (!keys.equals(before) || (fillDockLeavesSlots && docked != dockedAtStart)) {
-            Order order = new Order(Order.dockKey(dockApps), keys, docked);
+        if (!keys.equals(before)) {
+            Order order = new Order(keys);
             if (Order.save(Order.file(this), order)) {
-                adapter.setSavedOrder(Order.ranks(order, dockApps), Order.docked(order, dockApps));
+                adapter.setSavedOrder(Order.ranks(order));
             } else {
                 Toast.makeText(this, R.string.reorder_not_saved, Toast.LENGTH_SHORT).show();
             }
         }
-        if (fillDockLeavesSlots) reloadTiles();   // the empty dock slots left out while reordering come back
     }
 
     /**
@@ -1758,8 +1471,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             drop();
             return;
         }
-        // A single row has no rows to move between: Up and Down leave the carried tile where it is.
-        if (singleRow && (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN)) return;
         int to;
         // rtl_app_grid (Hebrew) mirrors the grid: position 0 is on the right, so Left moves towards the end.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) to = rtlAppGrid ? from + 1 : from - 1;
@@ -1769,9 +1480,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else to = from / COLUMNS < (n - 1) / COLUMNS ? n - 1 : from;
         if (to < 0 || to >= n || to == from) return;
         keepScroll(() -> adapter.move(from, to));
-        // The owner carries this tile: where it lands decides whether it is in the dock, not dock_apps (#499).
-        if (to < COLUMNS) dockInSession.add(movingKey);
-        else dockInSession.remove(movingKey);
         refocusAfterLayout(to);
     }
 
@@ -1785,11 +1493,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         GridLayoutManager lm = (GridLayoutManager) grid.getLayoutManager();
         int first = lm.findFirstVisibleItemPosition();
         View firstView = first != RecyclerView.NO_POSITION ? lm.findViewByPosition(first) : null;
-        // single_row scrolls sideways, so its first visible tile is pinned by its left edge instead; mirrored by
+
         // rtl_app_grid, the row is laid out from the right, and the offset counts from the right edge.
         int offset = firstView == null ? 0
-                : singleRow && rtlAppGrid ? grid.getWidth() - grid.getPaddingRight() - lm.getDecoratedRight(firstView)
-                : singleRow ? lm.getDecoratedLeft(firstView) - grid.getPaddingLeft()
                 : lm.getDecoratedTop(firstView) - grid.getPaddingTop();
         change.run();
         if (firstView != null) lm.scrollToPositionWithOffset(first, offset);
@@ -1887,8 +1593,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float w = card.getWidth() * scale + 2 * pad;
         float h = card.getHeight() * scale + 2 * pad;
         float x = r.exactCenterX() - w / 2f;
-        // advanced_effects lifts a focused grid tile by 4dp and the glass follows it; dock tiles stay put (#2135).
-        boolean lifted = advancedEffects && !DockSlots.inDockRow(dockRow, singleRow, position, COLUMNS);
+        boolean lifted = advancedEffects;
         float y = r.exactCenterY() - h / 2f - (lifted ? 4f * density : 0f);
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
@@ -1903,11 +1608,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glassCardRect.set(r);
         glassTargetX = x;
         glassTargetY = y;
-        // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid (and on the dock with
-        // cinematic_white_focus). app_glow: every tile. In a single row every tile is the dock's kind.
-        boolean coloured = (appGlow || cinematic && !cinematicWhiteFocus && (singleRow || position < COLUMNS)) && !festive;
+        boolean coloured = appGlow && !festive;
         int accent = coloured ? adapter.ambientColorAt(position) : 0;
-        if ((cinematic || appGlow) && !festive && accent != glassAccent) {
+        if (appGlow && !festive && accent != glassAccent) {
             glassAccent = accent;
             glass.setAccent(accent);
         }
@@ -1925,31 +1628,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setTranslationX(x);
             glass.setTranslationY(y);
         } else {
-            springX.animateToFinalPosition(x - glassScrollShiftX);
+            springX.animateToFinalPosition(x);
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
-        if (dockRow && (singleRow || position < COLUMNS)) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app. In a single row
-            // every tile is in the dock's row, which never scrolls vertically.
-            int decoratedTop = item.getTop() - (int) (6 * density);
-            int dy = decoratedTop - grid.getPaddingTop();
-            // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
-            // actually off; reduced motion does it in one jump so it does not fight the highlight.
-            boolean scroll = !singleRow && Math.abs(dy) > (int) (8 * density);
-            if (scroll) {
-                if (!animations || reducedMotion) grid.scrollBy(0, dy);
-                else grid.smoothScrollBy(0, dy);
-            }
-            showHero(position, scroll ? r.top - dy : r.top);
-        } else {
-            // Below the dock (or in a plain grid) the glow follows the tile without the big name; letting it
-            // fade out left the grid on plain black.
-            showGlowOnly(position);
-            // Scroll just enough so the whole glass (not only the tile) is visible.
-            revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
-        }
+        showGlowOnly(position);
+        // Scroll just enough so the whole glass (not only the tile) is visible.
+        revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
+        grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
     }
 
     /** Refits the glass to the focused holder once the grid layout and tile dimensions settle. */
@@ -1971,217 +1657,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h
                 || !glassCardRect.equals(r)) {
             onTileFocused(pos, card);
-        }
-    }
-
-    // ---- top shelf -------------------------------------------------------------------------------
-
-    private void showHero(int position, float dockTopInRoot) {
-        String label = adapter.labelAt(position);
-        int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
-        boolean changed = !label.contentEquals(heroName.getText());
-        if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
-
-        if (!animations || reducedMotion) {
-            // Snap the shelf instead of sliding and fading it: each of those frames repaints the
-            // full-screen panel, and this switch exists for the GPUs that cannot afford it.
-            hero.animate().cancel();
-            ambient.animate().cancel();
-            fillHero(position, label);
-            hero.setY(y);
-            hero.setTranslationX(0f);
-            hero.setAlpha(1f);
-            if (ambientGlow) {
-                setAmbient(color);
-                ambient.setAlpha(1f);
-            }
-            heroShown = true;
-            return;
-        }
-
-        if (!heroShown) {
-            stopAmbientAnimation();
-            hero.animate().cancel();
-            ambient.animate().cancel();
-            fillHero(position, label);
-            hero.setY(y);
-            hero.setTranslationX(0f);
-            hero.animate().alpha(1f).setDuration(260).start();
-            if (ambientGlow) {
-                setAmbient(color);
-                ambient.animate().alpha(1f).setDuration(600).start();
-            }
-            heroShown = true;
-        } else if (changed) {
-            if (advancedEffects) hero.animate().cancel();
-            hero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                fillHero(position, label);
-                hero.setY(y);
-                hero.setTranslationX(12 * density);
-                hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
-            }).start();
-            if (ambientGlow && advancedEffects) {
-                transitionAmbient(color);
-            } else if (ambientGlow && color != ambientColor && glowSnap) {
-                ambient.animate().cancel();
-                setAmbient(color);
-                ambient.setAlpha(1f);
-            } else if (ambientGlow && color != ambientColor) {
-                // Every frame of this fade repaints the whole screen: the scene keeps it to about half as many.
-                ambient.animate().alpha(0.35f).setDuration(scene ? 110 : 200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(scene ? 260 : 500).start();
-                }).start();
-            }
-        } else {
-            hero.setY(y);
-            // onPause cancels the fade-ins, and a second Home during one lands on the same tile, which starts none:
-            // finish them, or the shelf and the glow stay dim until focus moves to another app.
-            if (hero.getAlpha() < 1f) hero.animate().alpha(1f).setDuration(260).start();
-            if (ambientGlow && color == ambientColor && ambient.getAlpha() < 1f) {
-                ambient.animate().alpha(1f).setDuration(600).start();
-            }
-        }
-    }
-
-    /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
-    private void fillHero(int position, String label) {
-        heroName.setText(label);
-        if (!cinematic) return;
-        updateHeroMeta(position);
-        updateHeroDots(position);
-    }
-
-    // ---- cinematic shelf -------------------------------------------------------------------------
-
-    /**
-     * The parts that never change: a larger name, the meta line and the dots, the artwork and the scrim, at
-     * scrimPercent of its strength (cinematic_scrim). cinematic_art 0 leaves the artwork out, 0 percent the scrim.
-     */
-    private void setUpCinematicShelf(int scrimPercent) {
-        if (scene) {
-            // The scene's headline: Unbounded Bold, smaller than the cinematic 68sp so long names ("Яндекс Музыка") fit.
-            heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 52f);
-            heroName.setTypeface(UiFont.get(this, R.string.font_display));
-            heroName.setLetterSpacing(-0.03f);
-            heroMeta.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f);
-            heroMeta.setTypeface(UiFont.get(this, R.string.font_regular));
-        } else {
-            heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 68f);
-            heroName.setLetterSpacing(-0.025f);
-        }
-        heroMeta.setVisibility(View.INVISIBLE);   // keeps its height, so the name does not jump when it fills in
-        heroDots.setVisibility(heroDotsShown ? View.VISIBLE : View.GONE);
-        heroArt.setVisibility(heroArtAlpha > 0f ? View.VISIBLE : View.GONE);
-        // One stretched bitmap: apply its alpha while drawing instead of through an offscreen buffer.
-        heroArt.forceHasOverlappingRendering(false);
-        if (scrimPercent <= 0) return;   // cinematic_scrim 0: no scrim at all
-        View scrim = findViewById(R.id.heroScrim);
-        Drawable shade = scrimDrawable();
-        // On the bitmap's paint, not the view: a view's alpha would draw the full screen through an offscreen buffer.
-        shade.setAlpha(scrimPercent * 255 / 100);
-        scrim.setBackground(shade);
-        scrim.setVisibility(View.VISIBLE);
-    }
-
-    /**
-     * Darkens the side the shelf's text is on and the lower part of the screen, so the name, the dock and
-     * the grid stay readable over the artwork. One small bitmap stretched over the screen, like the glow.
-     */
-    private Drawable scrimDrawable() {
-        int w = 480, h = 270;
-        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
-        Paint paint = new Paint();
-        paint.setShader(new LinearGradient(rtl ? w : 0, 0, rtl ? 0 : w, 0,
-                new int[]{0xD1060406, 0x59060406, 0x00060406}, new float[]{0f, 0.42f, 0.7f}, Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, paint);
-        paint.setShader(new LinearGradient(0, 0, 0, h,
-                new int[]{0x00060406, 0x00060406, 0xDB060406, 0xFF060406}, new float[]{0f, 0.28f, 0.58f, 0.76f},
-                Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, paint);
-        BitmapDrawable scrim = new BitmapDrawable(getResources(), bmp);
-        scrim.setGravity(Gravity.FILL);
-        return scrim;
-    }
-
-    /** Swaps the backdrop to this app's artwork: fade out, swap, fade in, the way the shelf's name changes. */
-    private void showHeroArt(int position) {
-        String key = adapter.keyAt(position);
-        if (key == null) return;
-        heroArt.animate().cancel();
-        if (key.equals(heroArtKey)) {
-            fadeHeroArt(420);
-            return;
-        }
-        Bitmap art = heroArtCache.get(key);
-        if (art == null) {
-            art = HeroArt.from(adapter.artworkAt(position));
-            if (art != null) heroArtCache.put(key, art);
-        }
-        heroArtKey = key;
-        final Bitmap next = art;
-        if (!animations || reducedMotion || heroArt.getAlpha() == 0f) {
-            heroArt.setImageBitmap(next);
-            fadeHeroArt(600);
-            return;
-        }
-        heroArt.animate().alpha(0f).setDuration(140).withEndAction(() -> {
-            heroArt.setImageBitmap(next);
-            heroArt.animate().alpha(heroArtAlpha).setDuration(420).start();
-        }).start();
-    }
-
-    private void fadeHeroArt(int ms) {
-        if (!animations) heroArt.setAlpha(heroArtAlpha);
-        else heroArt.animate().alpha(heroArtAlpha).setDuration(reducedMotion ? Math.min(ms, Motion.REDUCED_MS) : ms).start();
-    }
-
-    /** "Last opened yesterday, 9:40 PM", the time in white; nothing (but the same height) when it was never seen. */
-    private void updateHeroMeta(int position) {
-        long when = LastOpened.get(this, adapter.packageAt(position));
-        if (when <= 0) {
-            heroMeta.setVisibility(View.INVISIBLE);
-            return;
-        }
-        String rel = LastOpened.describe(this, when);
-        String text = getString(R.string.last_opened, rel);
-        SpannableString line = new SpannableString(text);
-        int at = text.indexOf(rel);
-        if (at >= 0) line.setSpan(new ForegroundColorSpan(0xFFFFFFFF), at, at + rel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        heroMeta.setText(line);
-        heroMeta.setVisibility(View.VISIBLE);
-    }
-
-    /** One dot per dock app, the focused one drawn long and white. Hebrew docks start on the right, so do the dots. */
-    private void updateHeroDots(int position) {
-        if (!heroDotsShown) return;
-        int count = Math.min(adapter.dockFilled(), COLUMNS);
-        heroDots.setVisibility(count > 1 ? View.VISIBLE : View.INVISIBLE);
-        if (heroDots.getChildCount() != count) {
-            heroDots.removeAllViews();
-            for (int i = 0; i < count; i++) {
-                View dot = new View(this);
-                GradientDrawable bg = new GradientDrawable();
-                bg.setCornerRadius(3 * density);
-                dot.setBackground(bg);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (6 * density), (int) (6 * density));
-                if (i > 0) lp.leftMargin = (int) (6 * density);
-                heroDots.addView(dot, lp);
-            }
-        }
-        for (int i = 0; i < count; i++) {
-            View dot = heroDots.getChildAt(rtlAppGrid ? count - 1 - i : i);
-            boolean on = i == position;
-            ((GradientDrawable) dot.getBackground()).setColor(on ? 0xFFFFFFFF : 0x4DFFFFFF);
-            ViewGroup.LayoutParams lp = dot.getLayoutParams();
-            int w = (int) ((on ? 20 : 6) * density);
-            if (lp.width != w) {
-                lp.width = w;
-                dot.setLayoutParams(lp);
-            }
         }
     }
 
@@ -2215,15 +1690,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         w, 0f, w * 0.55f,
                         new int[]{0x66FFFFFF, 0x00FFFFFF},
                         null,
-                        Shader.TileMode.CLAMP));
-            } else if (cinematic) {
-                // Higher and stronger, from the corner away from the shelf's text: the app's colour floods
-                // the top of the screen over its artwork, and the scrim keeps the text side dark.
-                boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
-                paint.setShader(new RadialGradient(
-                        w * (rtl ? 0.20f : 0.80f), h * 0.06f, w * 0.78f,
-                        new int[]{0xA6FFFFFF, 0x47FFFFFF, 0x00FFFFFF},
-                        new float[]{0f, 0.5f, 1f},
                         Shader.TileMode.CLAMP));
             } else if (Config.GLOW_HORIZON.equals(glowStyle)) {
                 // The colour washes down from the top edge and fades out three quarters of the way down,
@@ -2276,19 +1742,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /**
-     * Grid tiles (every tile with dock_row false): the glow behind the grid takes the focused tile's colour; the big
-     * name above the dock does not show (every grid tile has its name underneath).
-     */
     private void showGlowOnly(int position) {
         int color = adapter.ambientColorAt(position);
         stopAmbientAnimation();
-        hero.animate().cancel();
         ambient.animate().cancel();
-        hero.setAlpha(0f);
-        heroArt.animate().cancel();
-        heroArt.setAlpha(0f);
-        heroShown = false;
         if (!ambientGlow) return;
         if (!animations || reducedMotion) {
             setAmbient(color);
@@ -2304,29 +1761,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.setAlpha(1f);
             return;
         }
-        // The same dip-and-swap as the dock's top shelf.
         ambient.animate().alpha(0.35f).setDuration(ambient.getAlpha() > 0.35f ? 200 : 0).withEndAction(() -> {
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(500).start();
         }).start();
-    }
-
-    private void hideHero() {
-        if (!heroShown) return;
-        stopAmbientAnimation();
-        hero.animate().cancel();
-        ambient.animate().cancel();
-        heroArt.animate().cancel();
-        heroShown = false;
-        if (animations && !reducedMotion) {
-            hero.animate().alpha(0f).setDuration(160).start();
-            if (ambientGlow) ambient.animate().alpha(0f).setDuration(300).start();
-            heroArt.animate().alpha(0f).setDuration(300).start();
-        } else {
-            hero.setAlpha(0f);
-            ambient.setAlpha(0f);
-            heroArt.setAlpha(0f);
-        }
     }
 
     private void hideGlass() {
@@ -2521,34 +1959,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public boolean onTileVerticalKey(int position, int keyCode) {
         int count = adapter.appCount();
         int target;
-        if (singleRow) {
-            // One row: Up leaves for the top bar, Down has nowhere to go, and Left/Right walk the whole row,
-            // stopping at its two ends (the default focus search scrolls the row to the next tile).
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return true;
-            boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
-            int last = adapter.focusablePosition(count - 1);
-            if (forward && position >= last) {
-                if (adapter.isLibraryAt(count)) focusLibrary();
-                return true;
-            }
-            return !forward && position == 0;
-        }
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
         // escapes up into the top bar. Mid-row moves fall through to the default focus search.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
             boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
-            if (forward && position == adapter.focusablePosition(count - 1) && adapter.isLibraryAt(count)) {
+            if (forward && position == (count - 1) && adapter.isLibraryAt(count)) {
                 focusLibrary();
                 return true;
             }
-            // In the dock, the last app is the row's end: the empty slots after it take no focus.
-            int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
-            return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
+            return GridNavigation.atHorizontalEdge(position, count, COLUMNS,
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) return false;
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -2568,7 +1991,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override public void onLibraryFocused() {
         libraryFocusPending = false;
         hideGlass();
-        hideHero();
     }
 
     /**
@@ -2786,7 +2208,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else firstTopButton().requestFocus();
             return;
         }
-        final int pos = adapter.focusablePosition(Math.max(0, Math.min(position, adapter.appCount() - 1)));
+        final int pos = Math.max(0, Math.min(position, adapter.appCount() - 1));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         if (vh != null) {
             View card = vh.itemView.findViewById(R.id.card);
@@ -3077,7 +2499,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hint.setOnClickListener(v -> dismissGestureHint());
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        // The free band between the clock and the shelf: over the dock it would cover the tiles and the app name.
+
         params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
         params.topMargin = (int) (150 * d);
         root.addView(hint, params);
@@ -3365,7 +2787,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         btnVpn.setVisibility(View.VISIBLE);
     }
-
 
     /** Every settings entry shares the standard intent and the vendor fallback (SystemSettings). */
     private Intent systemIntent(String standardAction) {
@@ -3896,7 +3317,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
-        if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
         addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
         // A launcher may not restart the TV itself; the Home key helper can open the system power menu instead.
         if (HomeKeyService.canOpenPowerMenu()) addSettingsMenuRow(rows, popup, R.string.power_menu, HomeKeyService::openPowerMenu);
@@ -3915,16 +3335,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         openInput(inputId);
     }
 
-    /**
-     * Hold OK on a tile: a glass menu next to it. Move starts reorder mode with this tile already picked up;
-     * Remove from Home takes the shortcut off (only with the app library on, where one press adds it back);
-     * App info opens the TV's page for the app, which is what holding OK used to do.
-     */
     // ---- hold OK ---------------------------------------------------------------------------------
     // View's own long click misses on some remotes: an IR remote that sends its repeat frames as separate
     // presses, or a Bluetooth one whose repeats land after a tile rebind, never holds one DOWN long enough.
     // So the launcher times the hold itself: OK down on a tile, still down (or still repeating) after
-    // HOLD_OK_MS opens the tile menu, and the UP that follows is eaten so it doesn't also open the app.
+    // HOLD_OK_MS starts moving the tile, and the UP that follows is eaten so it doesn't also open the app.
 
     private static final long HOLD_OK_MS = 550;
     private long holdOkDown = -1;
@@ -3938,7 +3353,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 || code == KeyEvent.KEYCODE_NUMPAD_ENTER || code == KeyEvent.KEYCODE_BUTTON_A;
     }
 
-    /** True when the event belongs to a hold that opened the tile menu and must not reach the tile. */
+    /** True when the event belongs to a hold that started reordering and must not reach the tile. */
     private boolean holdOk(KeyEvent event) {
         if (!tileMenuEnabled || !isOkKey(event.getKeyCode())) return false;
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -4004,27 +3419,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onTileLongPress(int position, View card) {
+        if (holdOkDown >= 0) holdOkFired = true;
+        if (!homeBusy() && position >= 0 && position < adapter.movableCount()) {
+            startMovingTile(adapter.keyAt(position));
+        }
+    }
+
+    private void startMovingTile(String key) {
+        int position = adapter.positionOf(key);
+        if (position < 0 || position >= adapter.movableCount() || !beginReorder()) return;
+        focusTile(position);
+        pickUp(position);
+        Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+    }
+
+    private void showTileMenu(int position, View card) {
         if (homeBusy()) return;
         String key = adapter.keyAt(position);
         String pkg = adapter.packageAt(position);
-        // Empty dock slots and the Default-home tile carry the launcher's own package: no menu for them.
+
         if (key == null || pkg == null || pkg.equals(getPackageName())) return;
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
-        if (dockRow && position < adapter.movableCount()) {
-            boolean inDock = position < COLUMNS;
-            addSettingsMenuRow(rows, popup, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
-                    () -> startDockEditFor(key, inDock));
+        if (position < adapter.movableCount()) {
+            addSettingsMenuRow(rows, popup, R.string.tile_move, () -> startMovingTile(key));
         }
-        if (position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
-            if (!beginReorder()) return;
-            int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
-            if (at < 0) return;
-            focusTile(at);
-            pickUp(at);
-            Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
-        });
         if (appLibraryEnabled) addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
             if (LibraryApps.save(this, pkg, false)) reloadApps(false);
             else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
@@ -4034,7 +3454,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (info != null) addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(info));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
-        // Dock tiles sit near the bottom of the screen: open the menu above the tile when it would not fit below.
+
         int[] at = new int[2];
         card.getLocationInWindow(at);
         int gap = (int) (10 * density), height = panel.getMeasuredHeight();
