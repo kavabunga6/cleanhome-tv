@@ -15,6 +15,8 @@
     return response.json();
   }
   window.cleanHomeDevice={
+    clock:function(){return request('clock');},
+    setClock:function(mode){return request('clock/'+encodeURIComponent(mode),'POST');},
     catalog:function(){return request('catalog');},
     service:function(method,params){
       if(method==='launch')return request('launch/'+encodeURIComponent(params.id),'POST');

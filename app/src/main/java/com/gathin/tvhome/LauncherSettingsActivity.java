@@ -12,7 +12,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.format.DateFormat;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -59,6 +58,7 @@ public final class LauncherSettingsActivity extends Activity {
     private File previewFile;
     private Bitmap previewBitmap;
     private LinearLayout previewStack;
+    private TextView previewClock;
     private int previewColumns = -1;
     private int columns;
     private String clockFormat;
@@ -347,6 +347,8 @@ public final class LauncherSettingsActivity extends Activity {
         if (previewStack == null || previewColumns != columns) {
             buildPreview(screen);
         }
+        String pattern = ClockFormat.is24(this, clockFormat) ? "HH:mm" : "h:mm a";
+        previewClock.setText(new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date()));
     }
 
     /** Rebuilds the miniature when the column count changes. */
@@ -356,7 +358,7 @@ public final class LauncherSettingsActivity extends Activity {
         previewColumns = columns;
 
         TextView clock = new TextView(this);
-        clock.setText(DateFormat.getTimeFormat(this).format(new Date()));
+        previewClock = clock;
         clock.setTextSize(22);
         clock.setTextColor(0xFFF4F8FB);
         FrameLayout.LayoutParams clockParams = new FrameLayout.LayoutParams(

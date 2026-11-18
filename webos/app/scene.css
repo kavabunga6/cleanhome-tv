@@ -82,3 +82,8 @@ nav button:focus,.sheet button:focus{color:white}
 .grid-controls input{flex:1;min-width:5vw;height:2vw;cursor:pointer}
 .grid-controls input:focus{outline:.18vw solid white;outline-offset:.16vw}
 .grid-controls output{min-width:6.5em;text-align:center;font-variant-numeric:tabular-nums}
+
+.clock-settings{margin-top:1.4vw}
+.clock-settings h3{display:flex;align-items:baseline;margin:0 0 .6vw;font-size:1.65vw}
+#clock-example{margin-left:.8em;color:#c6c7d0;font-variant-numeric:tabular-nums;font-size:.9em;font-weight:400}
+#clock-options button[aria-pressed="true"]{background-color:#28594f;color:#fff}

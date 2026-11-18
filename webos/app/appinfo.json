@@ -12,6 +12,7 @@
   "requiredACG": [
     "application.launcher",
     "application.query",
-    "network.query"
+    "network.query",
+    "settings.query"
   ]
 }

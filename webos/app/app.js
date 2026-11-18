@@ -140,9 +140,66 @@
       if (view==='inputs') showInputs();
     });
   }
+  var systemClock, formatLocale, clockRevision=0, clockWrite=Promise.resolve();
+  function selectedClock() {
+    return pref.clockFormat==='12' || pref.clockFormat==='24' ? pref.clockFormat : 'system';
+  }
+  function formattedTime(date) {
+    var mode=selectedClock();
+    if(mode==='system')mode=systemClock;
+    var options={hour:'numeric',minute:'2-digit'};
+    var hours=date.getHours(), minutes=('0'+date.getMinutes()).slice(-2);
+    if(mode==='24')return ('0'+hours).slice(-2)+':'+minutes;
+    if(mode==='12')return (hours%12 || 12)+':'+minutes+(hours<12?' AM':' PM');
+    return date.toLocaleTimeString(formatLocale || undefined,options);
+  }
+  async function refreshClockFormat() {
+    var revision=++clockRevision;
+    try {
+      if(device) {
+        await clockWrite;
+        var info=await device.clock();
+        if(revision!==clockRevision)return;
+        pref.clockFormat=info.mode;
+        systemClock=info.system;
+      } else {
+        var reply=await service('getSystemSettings',{keys:['localeInfo']},'luna://com.webos.settingsservice');
+        if(revision!==clockRevision)return;
+        var locale=reply.settings && reply.settings.localeInfo;
+        if(locale) {
+          systemClock=locale.clock;
+          var tag=locale.locales && locale.locales.FMT;
+          if(tag) {
+            try {formatLocale=new Intl.DateTimeFormat(tag.replace(/_/g,'-')).resolvedOptions().locale;} catch (_) {}
+          }
+        }
+      }
+    } catch (_) { /* Use the web engine's local format if the platform service is unavailable. */ }
+    clock();
+  }
+  function chooseClock(mode) {
+    if(!device && selectedClock()===mode)return;
+    var revision=++clockRevision;
+    pref.clockFormat=mode;
+    if(device) {
+      clockWrite=clockWrite.then(function(){return device.setClock(mode);}).catch(function(){
+        if(revision===clockRevision) {
+          say('Не удалось сохранить формат часов.');
+          refreshClockFormat();
+        }
+      });
+    } else save();
+    clock();
+  }
   function clock() {
     if(selected && captionTime)captionTime.textContent=elapsed(selected);
-    var d = new Date(); $('time').textContent = d.toLocaleTimeString('ru-RU',{hour:'2-digit', minute:'2-digit',hour12:false});
+    var d = new Date(), shown=formattedTime(d); $('time').textContent=shown;
+    if($('clock-example')) {
+      $('clock-example').textContent=shown;
+      $('clock-options').querySelectorAll('button').forEach(function(el){
+        el.setAttribute('aria-pressed',String(el.dataset.mode===selectedClock()));
+      });
+    }
     $('date').textContent = d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
   }
   function wallpaper(index) { $('wall').style.backgroundImage = 'url("assets/'+walls[index][0]+'.jpg")'; }
@@ -386,6 +443,15 @@
     var rotate=button(row,rotationLabel(),function () {pref.rotate=pref.rotate===false;save();restartWalls();rotate.textContent=rotationLabel();});
     var meter=button(row,fpsLabel(),function () {pref.fps=!pref.fps;save();meter.textContent=fpsLabel();updateMeter();});
     if(device)button(row,'Дополнительно · Android',androidSettings);
+    var group=document.createElement('section');group.className='clock-settings';
+    group.setAttribute('aria-label','Формат часов');page.appendChild(group);
+    var title=document.createElement('h3');title.textContent='Часы';group.appendChild(title);
+    var example=document.createElement('time');example.id='clock-example';title.appendChild(example);
+    var options=grid(group);options.id='clock-options';
+    [['system','Системные'],['12','12 часов'],['24','24 часа']].forEach(function(choice){
+      var el=button(options,choice[1],function(){chooseClock(choice[0]);});el.dataset.mode=choice[0];
+    });
+    clock();
     first(page);
   }
   var draftColumns, startupAvailable=false;
@@ -611,7 +677,7 @@
   $('back').onclick=back;$('inputs').onclick=function () {open('inputs',showInputs);};
   $('library').onclick=function () {open('library',library);};$('settings').onclick=function () {open('settings',settings);};
   if(device)window.cleanHomeCommand=function(command){
-    if(command==='refresh'){network();scan(false,true);return;}
+    if(command==='refresh'){network();refreshClockFormat();scan(false,true);return;}
     if(command==='back'){back();return;}
     if(command==='home'){if(view)close();var firstTile=homeTiles()[0];if(firstTile)firstTile.focus();return;}
     if(command==='inputs')open('inputs',showInputs);
@@ -621,7 +687,7 @@
   };
   applyColumns(pref.gridColumns);
   window.addEventListener('resize',function(){applyColumns(view==='grid-settings'?draftColumns:pref.gridColumns);if(view==='grid-settings')updateGridControl();});
-  network();clock();setInterval(clock,15000);restartWalls();updateMeter();renderHome(false);scan();
+  network();clock();refreshClockFormat();setInterval(clock,15000);restartWalls();updateMeter();renderHome(false);scan();
   setInterval(function(){if(!document.hidden && live && live.paired())scan(false,true);},30000);
-  document.addEventListener('visibilitychange',function () {updateMeter();if(!document.hidden){network();clock();scan();}});
+  document.addEventListener('visibilitychange',function () {updateMeter();if(!document.hidden){network();clock();refreshClockFormat();scan();}});
 })();

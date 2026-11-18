@@ -1,5 +1,7 @@
 package com.gathin.tvhome;
 
+import android.content.Context;
+
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -96,6 +98,12 @@ final class SharedTvScene extends WebView {
             String action = path.get(1);
             if ("GET".equals(request.getMethod())) {
                 if ("catalog".equals(action)) return json(catalog());
+                if ("clock".equals(action)) {
+                    String mode = owner.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+                            .getString(Config.CLOCK_FORMAT_KEY, config.clockFormat);
+                    return json(new JSONObject().put("mode", mode)
+                            .put("system", ClockFormat.is24(owner, "system") ? "24" : "12"));
+                }
                 if ("network".equals(action)) return json(network());
                 if ("icon".equals(action) && path.size()==3) return icon(path.get(2));
             } else if ("POST".equals(request.getMethod())) {
@@ -103,6 +111,11 @@ final class SharedTvScene extends WebView {
                 FutureTask<Boolean> task = new FutureTask<>(() -> {
                     if (owner.isFinishing() || owner.isDestroyed()) return false;
                     switch (action) {
+                        case "clock":
+                            if (!"system".equals(id) && !"12".equals(id) && !"24".equals(id)) return false;
+                            owner.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+                                    .edit().putString(Config.CLOCK_FORMAT_KEY, id).apply();
+                            return true;
                         case "launch": return launch(id);
                         case "settings": owner.startActivity(SystemSettings.intent(owner,android.provider.Settings.ACTION_SETTINGS)); return true;
                         case "home-settings": owner.startActivity(new Intent(owner,HomeSettingsActivity.class)); return true;

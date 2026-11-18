@@ -8,6 +8,7 @@ const assert=require('node:assert/strict'),path=require('node:path');
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/webOSTV.js',route=>route.fulfill({contentType:'application/javascript',body:`
  window.opens=[];window.webOS={service:{request:(uri,o)=>{let a=['com.lampa.tv','youtube.leanback.v4','netflix','com.webos.app.browser','ivi','rutube','vkvideo','com.webos.app.hdmi1','test.app'];setTimeout(()=>{
+ if(o.method==='getSystemSettings')return o.onSuccess({settings:{localeInfo:{clock:'12',locales:{FMT:'en_US'}}}});
  if(o.method==='getStatus')return o.onSuccess({wired:{state:'connected'}});
  if(o.method==='launch'){window.opens.push(o.parameters.id);return o.onSuccess({returnValue:true})}
  o.onSuccess({returnValue:true,exist:a.includes(o.parameters.appId)})},2);return {cancel(){}}}}};`}));
@@ -85,6 +86,24 @@ const assert=require('node:assert/strict'),path=require('node:path');
  await page.keyboard.press('Escape');await page.keyboard.press('Escape');
  await page.locator('#inputs').click();await page.getByRole('button',{name:'HDMI 1'}).click();await page.waitForFunction(()=>window.opens.includes('com.webos.app.hdmi1'));await page.keyboard.press('Escape');
  await page.locator('#home-grid .tile').first().hover();
+ await page.clock.setFixedTime(await page.evaluate(()=>new Date(2026,10,18,21,44).getTime()));
+ await page.locator('#settings').click();
+ const mode=value=>page.locator('#clock-options [data-mode="'+value+'"]');
+ assert.equal(await page.locator('#clock-example').textContent(),'9:44 PM');
+ await mode('24').focus();await page.keyboard.press('Enter');
+ assert.equal(await mode('24').getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('#time').textContent(),'21:44');
+ const bounds=await page.locator('#clock-options button').evaluateAll(items=>items.map(item=>{
+   const rect=item.getBoundingClientRect();return [rect.top,rect.height];
+ }));
+ assert.deepEqual(bounds[0],bounds[1]);assert.deepEqual(bounds[1],bounds[2]);
+ await page.reload();await page.locator('#settings').click();
+ assert.equal(await mode('24').getAttribute('aria-pressed'),'true');
+ await page.clock.setFixedTime(await page.evaluate(()=>new Date(2026,10,19,0,5).getTime()));
+ await mode('12').click();assert.equal(await page.locator('#clock-example').textContent(),'12:05 AM');
+ await mode('24').click();assert.equal(await page.locator('#clock-example').textContent(),'00:05');
+ await mode('system').click();assert.equal(await page.locator('#clock-example').textContent(),'12:05 AM');
+ await page.keyboard.press('Escape');
  // Exercise preferences written by earlier versions before mounting the release UI.
  for (const fixture of [
    {old:['ivi','youtube.leanback.v4'],expected:['ivi','youtube.leanback.v4']},
