@@ -15,6 +15,20 @@ const assert=require('node:assert/strict'),path=require('node:path');
  await page.locator('#shelf .tile').filter({hasText:'Lampa'}).waitFor();await page.evaluate(()=>document.fonts.ready);
  assert.ok(await page.locator('#shelf .tile').count()>5); await page.getByRole('button',{name:'Lampa',exact:true}).focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#hero').innerText(),'YouTube');
  await page.keyboard.press('Enter');await page.waitForFunction(()=>window.opens.includes('youtube.leanback.v4'));
+ const homeTile=page.locator('#shelf .tile').nth(1), homeId=await homeTile.getAttribute('data-id');
+ const launches=await page.evaluate(()=>window.opens.length);
+ for (const pointer of [false,true]) {
+  await homeTile.focus();
+  if(pointer){await homeTile.hover();await page.mouse.down();}else{await page.mouse.move(0,0);await page.keyboard.down('Enter');}
+  const held=page.locator('#sort-grid [aria-pressed=true]');
+  await held.waitFor({timeout:2200});assert.equal(await held.getAttribute('data-id'),homeId);
+  if(pointer)await page.mouse.up();else await page.keyboard.up('Enter');
+  assert.equal(await held.getAttribute('data-id'),homeId);
+  await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#sort-grid button').nth(2).getAttribute('data-id'),homeId);
+  await page.keyboard.press('Enter');await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#panel').isVisible(),false);assert.equal(await homeTile.getAttribute('data-id'),homeId);
+  assert.equal(await page.evaluate(()=>window.opens.length),launches);
+ }
  await page.locator('#settings').click();
  const gridOptions=page.getByRole('button',{name:'Сетка главного экрана',exact:true});
  await gridOptions.click();

@@ -243,13 +243,23 @@
     return ids.concat(Array.from(remaining));
   }
   function libraryIds() {return arrangedIds(pref.libraryOrder || pref.dock);}
-  var editIds=null, heldId=null;
+  var editIds=null, heldId=null, sortHomeId=null;
   function headerAction(text,fn) {
     var header=$('back').parentElement;
     var el=button(header,text,fn);el.id='library-order';
     header.insertBefore(el,$('back'));return el;
   }
+  function leaveEditor() {
+    editIds=null;heldId=null;
+    if(sortHomeId) {
+      var id=sortHomeId;sortHomeId=null;close();
+      var tile=tileFor(id);if(tile)tile.focus();
+    } else {
+      library();if($('library-order'))$('library-order').focus();
+    }
+  }
   function editLibrary() {
+    sortHomeId=null;
     editIds=libraryIds();heldId=null;drawEditor(editIds[0]);
   }
   function finishEditor() {
@@ -263,7 +273,7 @@
       }
       save();renderHome(false);
     }
-    editIds=null;heldId=null;library();if($('library-order'))$('library-order').focus();
+    leaveEditor();
   }
   function drawEditor(focusId) {
     var page=panel('sort','Порядок приложений'), row=grid(page);
@@ -435,7 +445,7 @@
     });row.children[pref.wall].focus();
   }
   function back() {
-    if(view==='sort'){cancelDrag();editIds=null;heldId=null;library();if($('library-order'))$('library-order').focus();}
+    if(view==='sort'){cancelDrag();leaveEditor();}
     else if(view==='grid-settings')finishGrid(false);
     else if(view==='walls'||view==='android-settings') settings(); else if(view==='actions') library(actionApp.id); else if(view==='custom') library(); else if(view) close();
     else if(device)device.back();
@@ -481,6 +491,7 @@
   function clearDrag() {
     cancelAnimationFrame(scrollFrame);scrollFrame=0;
     if(!gesture)return;
+    clearTimeout(gesture.holdTimer);
     if(gesture.ghost)gesture.ghost.remove();
     if(gesture.over)gesture.over.classList.remove('drop-place');
     if(gesture.source)gesture.source.classList.remove('drag-source');
@@ -488,9 +499,30 @@
     gesture=null;
   }
   function armDrag(el,x,y) {
+    if(gesture && gesture.source===el) {
+      if(typeof gesture.x!=='number' && typeof x==='number'){gesture.x=x;gesture.y=y;}
+      return;
+    }
     clearDrag();
-    if(!el || !el.matches('.library-app[data-id]') || (view!=='library' && view!=='sort'))return;
-    gesture={id:el.dataset.id,x:x,y:y,cx:x,cy:y,source:el,over:null,ghost:null};
+    if(!el || !el.matches(view?'.library-app[data-id]':'#shelf .tile[data-id]'))return;
+    if(view && view!=='library' && view!=='sort')return;
+    var g={id:el.dataset.id,x:x,y:y,cx:x,cy:y,source:el,over:null,ghost:null,origin:view};
+    gesture=g;
+    if(view!=='sort')g.holdTimer=setTimeout(function(){
+      if(gesture!==g || view!==g.origin || document.hidden || !document.contains(el) || document.activeElement!==el)return;
+      takeForSort(g);
+    },550);
+  }
+  function takeForSort(g) {
+    clearTimeout(g.holdTimer);
+    if(view!=='sort'){
+      sortHomeId=view?null:g.id;
+      if(!view)opener=g.source;
+      editIds=libraryIds();heldId=g.id;
+      drawEditor(g.id);
+      g.source=editTile(g.id);
+    }
+    g.taken=true;
   }
   function updateDropTarget() {
     var g=gesture, hit=document.elementFromPoint(g.cx,g.cy);
@@ -515,6 +547,7 @@
   function moveDrag(x,y) {
     if(!gesture)return false;
     var g=gesture;
+    if(typeof g.x!=='number')return false;
     if(!g.ghost) {
       if(!document.contains(g.source)){clearDrag();return false;}
       if(Math.hypot(x-g.x,y-g.y)<Math.max(8,window.innerWidth*.006))return false;
@@ -525,9 +558,7 @@
       ghost.removeAttribute('data-id');ghost.setAttribute('aria-hidden','true');ghost.tabIndex=-1;
       ghost.classList.add('drag-ghost');
       ghost.style.width=bounds.width+'px';ghost.style.height=bounds.height+'px';
-      if(view==='library') {
-        editIds=libraryIds();heldId=null;drawEditor(g.id);
-      }
+      takeForSort(g);
       g.source=editTile(g.id);
       if(!g.source){clearDrag();return true;}
       heldId=g.id;showHeld();g.source.classList.add('drag-source');
@@ -542,7 +573,7 @@
   function releaseDrag(x,y) {
     if(!gesture)return false;
     var g=gesture;
-    if(!g.ghost){clearDrag();return false;}
+    if(!g.ghost){clearDrag();return !!g.taken;}
     if(typeof x==='number'){g.cx=x;g.cy=y;updateDropTarget();}
     var dest=g.over && g.over.dataset.id;
     if(view==='sort' && dest)moveTo(editIds.indexOf(dest));

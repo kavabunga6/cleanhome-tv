@@ -30,8 +30,8 @@
         stop(e);
         if(!pointer) {
           clickConsumed=false;
-          if(lastPoint && button(document.elementFromPoint(lastPoint.x,lastPoint.y))===target)
-            drag.arm(target,lastPoint.x,lastPoint.y);
+          var point=lastPoint && button(document.elementFromPoint(lastPoint.x,lastPoint.y))===target ? lastPoint : null;
+          drag.arm(target,point?point.x:undefined,point?point.y:undefined);
         }
       }
     }
@@ -42,7 +42,7 @@
       if(!press.handled){if(press.stale)stop(e);return;}
       stop(e);
       if(press.mouse)return;
-      var dropped=drag.release();
+      var dropped=!pointer && drag.release();
       if(!dropped && !press.stale && !clickConsumed && document.activeElement===press.target && document.contains(press.target))activate(press.target);
       clickConsumed=true;
     }
@@ -78,7 +78,8 @@
       released=null;
       if(clickConsumed || (owner && (owner.stale || owner.target!==button(e.target)))){stop(e);return;}
       // Some TV input modes deliver the click before the corresponding keyup.
-      if(owner || keys.has(13) || keys.has(32))clickConsumed=true;
+      if(!owner && (keys.has(13) || keys.has(32))){stop(e);return;}
+      if(owner)clickConsumed=true;
     },true);
     window.addEventListener('blur',reset);
     document.addEventListener('visibilitychange',function(){if(document.hidden)reset();});

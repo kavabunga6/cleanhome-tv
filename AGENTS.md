@@ -3,7 +3,7 @@
 Identify the TV platform before downloading a package.
 
 - **LG webOS TV** — follow the [webOS guide](webos/README.md). Install the IPK from this fork, launch `dev.cleanhome.tv.webos` and have the owner approve catalog access on the TV. Home opens the system launcher on the tested model.
-- **Android TV / Google TV** — for the shared TV interface, download the APK from [this fork](https://github.com/kavabunga6/cleanhome-tv/releases/tag/tv-ui-2) and use the Android installation steps below. The upstream APK uses the original Android layout.
+- **Android TV / Google TV** — for the shared TV interface, download the APK from [this fork](https://github.com/kavabunga6/cleanhome-tv/releases/tag/tv-ui-3) and use the Android installation steps below. The upstream APK uses the original Android layout.
 
 ## Install CleanHome on an Android TV
 
@@ -29,7 +29,7 @@ Ukrainian: «Головний екран», English and others: «Home». The pa
 
 ## What you need
 
-- For the shared TV interface, download the APK with `gh release download tv-ui-2 --repo kavabunga6/cleanhome-tv --pattern '*.apk'`. The following upstream download is for users requesting the original Android interface.
+- For the shared TV interface, download the APK with `gh release download tv-ui-3 --repo kavabunga6/cleanhome-tv --pattern '*.apk'`. The following upstream download is for users requesting the original Android interface.
   Without a signed-in `gh`, use the public API:
   `curl -sL https://api.github.com/repos/ungurenko/cleanhome-tv/releases/latest | grep -o 'https://[^"]*\.apk' | head -n 1 | xargs curl -sLO`.
   Build from source only when the person wants changes (see «Change the launcher»).
