@@ -1,4 +1,11 @@
-# Install CleanHome on an Android TV: guide for AI agents
+# Install CleanHome TV
+
+Identify the TV platform before downloading a package.
+
+- **LG webOS TV** — follow the [webOS guide](webos/README.md). Install the IPK from this fork, launch `dev.cleanhome.tv.webos` and have the owner approve catalog access on the TV. Home opens the system launcher on the tested model.
+- **Android TV / Google TV** — use the APK and Android steps below.
+
+## Install CleanHome on an Android TV
 
 You are helping a person who is not a programmer. They pasted a prompt like «Install CleanHome on my TV» into
 Claude Code, Codex or another coding agent. Your job: put the CleanHome launcher on their Android TV and make it

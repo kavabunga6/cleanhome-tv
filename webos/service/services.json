@@ -1,0 +1,10 @@
+{
+  "id": "dev.cleanhome.tv.webos.catalog",
+  "description": "CleanHome local TV catalog",
+  "services": [
+    {
+      "name": "dev.cleanhome.tv.webos.catalog",
+      "description": "Refresh locally approved launch points and icons"
+    }
+  ]
+}

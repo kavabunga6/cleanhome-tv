@@ -1,0 +1,7 @@
+build/
+dist/
+# Local TV catalog exports from development
+/app/lg-apps.js
+/app/logos/*.png
+
+/tests/node_modules/

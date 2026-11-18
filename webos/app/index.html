@@ -1,0 +1,6 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CleanHome TV</title><link rel="stylesheet" href="scene.css"></head>
+<body><div id="wall"></div><main id="home">
+<header><div><time id="time"></time><div id="date"></div></div><nav><span id="network" hidden></span><button id="inputs">Источники</button><button id="library">Приложения</button><button id="settings">Настройки</button></nav></header>
+<section class="scene"><p id="shelf-status" role="status">Проверяем приложения…</p><div id="shelf" aria-label="Избранное"></div></section></main>
+<section id="panel" role="dialog" aria-modal="true" aria-labelledby="title" hidden><div class="sheet"><header><h2 id="title"></h2><button id="back">Назад</button></header><div id="items"></div></div></section>
+<div role="status" id="notice" hidden></div><script src="webOSTV.js"></script><script src="live-catalog.js"></script><script src="remote-input.js"></script><script src="app.js"></script></body></html>

@@ -1,0 +1,9 @@
+{
+  "name": "dev.cleanhome.tv.webos.catalog",
+  "version": "0.2.0",
+  "main": "catalog.js",
+  "private": true,
+  "dependencies": {
+    "ws": "7.5.10"
+  }
+}

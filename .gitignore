@@ -17,3 +17,6 @@ local.properties
 # ключи
 *.jks
 *.keystore
+
+# Local webOS CLI installation
+/.lg-sdk/
