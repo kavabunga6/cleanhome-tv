@@ -40,6 +40,7 @@ public final class LauncherSettingsActivity extends Activity {
         super.attachBaseContext(LauncherLocale.wrap(base));   // locale
     }
 
+    static final String STARTUP_ONLY = "startupPickerOnly";
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
     private static final int[] PREVIEW_COLORS = {
             0xFFFFB04A, 0xFFFF5C5C, 0xFF4B8DFF, 0xFFA78BFA, 0xFF38E0C4};
@@ -74,6 +75,11 @@ public final class LauncherSettingsActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        if (getIntent().getBooleanExtra(STARTUP_ONLY,false)) {
+            choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+            showOpenOnStartPicker();
+            return;
+        }
         setContentView(R.layout.activity_launcher_settings);
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
@@ -248,8 +254,9 @@ public final class LauncherSettingsActivity extends Activity {
                         OpenOnStart.skipThisBoot(this);
                         choices.edit().putString(OpenOnStart.KEY, apps.get(which - 1)[1]).apply();
                     }
-                    refresh();
+                    if (!getIntent().getBooleanExtra(STARTUP_ONLY,false)) refresh();
                 })
+                .setOnDismissListener(dialog -> { if (getIntent().getBooleanExtra(STARTUP_ONLY,false)) finish(); })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
@@ -474,7 +481,7 @@ public final class LauncherSettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (choices != null) refresh();
+        if (choices != null && !getIntent().getBooleanExtra(STARTUP_ONLY,false)) refresh();
     }
 
     private boolean hasOnTvChoices() {

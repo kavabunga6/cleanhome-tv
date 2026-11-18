@@ -72,3 +72,14 @@ nav button:focus,.sheet button:focus{color:white}
 .drag-ghost .app-icon {pointer-events:none}
 .dragging #sort-grid .drag-source {opacity:.45}
 #sort-grid .drop-place {background:#386678;box-shadow:0 0 0 .22vw #10141c,0 0 0 .38vw #fff}
+
+#panel.grid-editor{justify-content:center;align-items:flex-start;background:transparent}
+.grid-editor .sheet{width:92vw;margin-top:2vh;padding:.7vw 1.4vw;background:#171921}
+.grid-editor .sheet header{margin-bottom:0}
+.grid-editor .sheet h2{font-size:2vw}
+.grid-editor #items{padding:.4vw .5vw}
+.grid-controls{display:flex;align-items:center}
+.grid-controls>*+*{margin-left:1.1vw}
+.grid-controls input{flex:1;min-width:5vw;height:2vw;cursor:pointer}
+.grid-controls input:focus{outline:.18vw solid white;outline-offset:.16vw}
+.grid-controls output{min-width:6.5em;text-align:center;font-variant-numeric:tabular-nums}

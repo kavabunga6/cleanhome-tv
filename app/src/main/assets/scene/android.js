@@ -22,6 +22,6 @@
       return Promise.reject(new Error('Действие недоступно.'));
     },
     back:function(){request('back','POST').catch(function(){});},
-    settings:function(){request('settings','POST').catch(function(){});}
+    settings:function(method){return request(method,'POST');}
   };
 })();

@@ -75,7 +75,7 @@
       try {
         var data=await device.catalog();
         if(request!==livePass)return;
-        sources=data.inputs;
+        sources=data.inputs;startupAvailable=!!data.startupAvailable;
         if(!pref.libraryOrder && data.order.length)pref.libraryOrder=data.order;
         data.apps.forEach(function(a){if(a.recent && !pref.recent[a.id])pref.recent[a.id]=a.recent;});
         defaultHidden=data.hidden;
@@ -215,12 +215,14 @@
     if(gesture && gesture.ghost)cancelDrag();
     ['library-order','sort-hint'].forEach(function(id){var el=$(id);if(el)el.remove();});
     $('back').textContent='Назад';
+    $('panel').classList.toggle('grid-editor',name==='grid-settings');
     view=name; $('panel').hidden=false; $('home').setAttribute('aria-hidden','true');
     $('title').textContent=title; $('items').textContent=''; $('items').scrollTop=0;
     return $('items');
   }
   function close() {
     markInputTransition();cancelDrag();
+    if(view==='grid-settings')applyColumns(pref.gridColumns);
     $('panel').hidden=true; $('home').removeAttribute('aria-hidden'); view='';
     var target=opener && document.contains(opener) ? opener : tileFor(selected)||$('library');
     target.focus();
@@ -332,7 +334,7 @@
     actionApp=a;
     var page=panel('actions',a.name), row=grid(page), ids=order().slice(), pos=ids.indexOf(a.id);
     button(row,'Открыть',function () {launch(a);});
-    button(row,pos<0?'На полку':'Убрать с полки',function () {
+    button(row,pos<0?'Добавить на главную':'Убрать с главной',function () {
       if (pos<0) ids.push(a.id); else ids.splice(pos,1);
       pref.dock=ids;save();renderHome(false);library(a.id);
     });
@@ -341,7 +343,7 @@
   function customForm() {
     var page=panel('custom','Добавить приложение'), form=document.createElement('form');form.className='form';page.appendChild(form);
     function field(caption, max) {var label=document.createElement('label'); label.textContent=caption; var el=document.createElement('input'); el.maxLength=max; el.required=true;label.appendChild(el);form.appendChild(label);return el;}
-    var id=field('Идентификатор приложения webOS',127), title=field('Название на полке',80);
+    var id=field('Идентификатор приложения webOS',127), title=field('Название приложения',80);
     var submit=button(form,'Добавить'); submit.type='submit';
     form.onsubmit=function (e) {e.preventDefault(); var key=id.value.trim(), name=title.value.trim();
       if (!valid(key)||!name) {say('Проверьте идентификатор и название.');return;}
@@ -363,21 +365,56 @@
   }
   function settings() {
     var page=panel('settings','Настройки'), row=grid(page);
-    var preview=document.createElement('div'); preview.className='preview';
-    preview.style.backgroundImage='linear-gradient(0deg,#080a13be,transparent),url("assets/'+walls[pref.wall][0]+'.jpg")';
-    var time=document.createElement('span');time.textContent=$('time').textContent;preview.appendChild(time);
-    var hero=document.createElement('strong');hero.textContent=selected?captionTitle.textContent:'Ваша полка';preview.appendChild(hero);
-    var dock=document.createElement('div');dock.className='mini';
-    var columns=homeColumns();
-    dock.style.gridTemplateColumns='repeat('+columns+',minmax(0,1fr))';
-    order().slice(0,columns*2).forEach(function (id) {var a=find(id);if(a){var tile=document.createElement('i');tile.style.backgroundColor=a.color || '#384666';tile.textContent=a.name;dock.appendChild(tile);}});
-    preview.appendChild(dock);page.insertBefore(preview,row);
+    button(row,'Сетка главного экрана',gridSettings);
     button(row,'Обои',wallPicker);
     var rotate=button(row,rotationLabel(),function () {pref.rotate=pref.rotate===false;save();restartWalls();rotate.textContent=rotationLabel();});
     var meter=button(row,fpsLabel(),function () {pref.fps=!pref.fps;save();meter.textContent=fpsLabel();updateMeter();});
-    button(row,'Настроить полку',library);
-    if(device)button(row,'Дополнительно · Android',function(){device.settings();});
+    if(device)button(row,'Дополнительно · Android',androidSettings);
     first(page);
+  }
+  var draftColumns, startupAvailable=false;
+  function maxColumns() {
+    var shelf=$('shelf'), style=getComputedStyle(shelf);
+    var width=shelf.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+    var gap=parseFloat(style.columnGap)||0;
+    return Math.max(1,Math.floor((width+gap)/(180+gap)));
+  }
+  function applyColumns(value) {
+    var n=Number.isInteger(value) && value>0 ? Math.min(value,maxColumns()) : 0;
+    $('shelf').style.gridTemplateColumns=n?'repeat('+n+',minmax(0,1fr))':'';
+  }
+  function updateGridControl() {
+    var slider=$('grid-columns');
+    if(!slider)return;
+    slider.max=maxColumns();slider.value=homeColumns();
+    $('grid-value').textContent=(draftColumns?'':'Авто · ')+slider.value;
+  }
+  function finishGrid(commit) {
+    if(commit){pref.gridColumns=draftColumns;save();}
+    applyColumns(pref.gridColumns);
+    settings();
+  }
+  function gridSettings() {
+    var page=panel('grid-settings','Сетка главного экрана');
+    $('back').textContent='Отмена';
+    $('shelf').scrollTop=0;
+    draftColumns=pref.gridColumns||0;
+    var row=document.createElement('div');row.className='grid-controls';page.appendChild(row);
+    var label=document.createElement('label');label.htmlFor='grid-columns';label.textContent='Плиток в ряду';row.appendChild(label);
+    var slider=document.createElement('input');slider.type='range';slider.id='grid-columns';slider.min=1;slider.step=1;row.appendChild(slider);
+    var value=document.createElement('output');value.id='grid-value';value.setAttribute('for',slider.id);row.appendChild(value);
+    slider.oninput=function(){draftColumns=Number(slider.value);applyColumns(draftColumns);updateGridControl();};
+    button(row,'Авто',function(){draftColumns=0;applyColumns(0);updateGridControl();slider.focus();});
+    button(row,'Готово',function(){finishGrid(true);});
+    applyColumns(draftColumns);updateGridControl();slider.focus();
+  }
+  function androidSettings() {
+    var row=grid(panel('android-settings','Android TV'));
+    function action(label,method){button(row,label,function(){device.settings(method).catch(function(){say('Действие недоступно на этом телевизоре.');});});}
+    action('Главный экран по умолчанию','home-settings');
+    action('Системные настройки ТВ','settings');
+    if(startupAvailable)action('Приложение при включении','startup');
+    first(row);
   }
   function rotationLabel() {return 'Смена обоев · '+(pref.rotate===false?'выкл.':'30 мин');}
   function fpsLabel() {return 'Счётчик кадров · '+(pref.fps?'вкл.':'выкл.');}
@@ -399,7 +436,8 @@
   }
   function back() {
     if(view==='sort'){cancelDrag();editIds=null;heldId=null;library();if($('library-order'))$('library-order').focus();}
-    else if(view==='walls') settings(); else if(view==='actions') library(actionApp.id); else if(view==='custom') library(); else if(view) close();
+    else if(view==='grid-settings')finishGrid(false);
+    else if(view==='walls'||view==='android-settings') settings(); else if(view==='actions') library(actionApp.id); else if(view==='custom') library(); else if(view) close();
     else if(device)device.back();
     else if (window.webOS && window.webOS.platformBack) window.webOS.platformBack(); else window.close();
   }
@@ -527,6 +565,7 @@
   document.addEventListener('keydown',function (e) {
     var key=e.keyCode;
     if (key===461||key===27) {e.preventDefault();back();return;}
+    if(view==='grid-settings' && e.target.id==='grid-columns' && key===13){e.preventDefault();finishGrid(true);return;}
     if (e.target.tagName==='INPUT' && (key===37||key===39||key===13)) return;
     if (key>=37 && key<=40){e.preventDefault();if(view==='sort' && heldId)moveHeld(key);else navigate(key);}
     if(key===9 && view){var root=$('panel'), controls=root.querySelectorAll('button:not([disabled]),input');var i=e.shiftKey?0:controls.length-1;
@@ -543,6 +582,8 @@
     if(command==='settings')open('settings',settings);
     if(command==='sort')open('sort',editLibrary);
   };
+  applyColumns(pref.gridColumns);
+  window.addEventListener('resize',function(){applyColumns(view==='grid-settings'?draftColumns:pref.gridColumns);if(view==='grid-settings')updateGridControl();});
   network();clock();setInterval(clock,15000);restartWalls();updateMeter();renderHome(false);scan();
   setInterval(function(){if(!document.hidden && live && live.paired())scan(false,true);},30000);
   document.addEventListener('visibilitychange',function () {updateMeter();if(!document.hidden){network();clock();scan();}});

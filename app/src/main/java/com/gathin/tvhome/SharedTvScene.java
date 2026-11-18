@@ -104,7 +104,12 @@ final class SharedTvScene extends WebView {
                     if (owner.isFinishing() || owner.isDestroyed()) return false;
                     switch (action) {
                         case "launch": return launch(id);
-                        case "settings": owner.openAndroidSceneSettings(); return true;
+                        case "settings": owner.startActivity(SystemSettings.intent(owner,android.provider.Settings.ACTION_SETTINGS)); return true;
+                        case "home-settings": owner.startActivity(new Intent(owner,HomeSettingsActivity.class)); return true;
+                        case "startup":
+                            if (!config.openOnStartChoice) return false;
+                            owner.startActivity(new Intent(owner,LauncherSettingsActivity.class).putExtra(LauncherSettingsActivity.STARTUP_ONLY,true));
+                            return true;
                         case "back": owner.sceneHomeBack(); return true;
                         default: return false;
                     }
@@ -165,7 +170,7 @@ final class SharedTvScene extends WebView {
         hidden.addAll(LibraryApps.loadRemoved(owner));
         entries = found;
         inputs = portIds;
-        return new JSONObject().put("apps",rows).put("inputs",ports).put("order",order).put("hidden",new JSONArray(hidden));
+        return new JSONObject().put("apps",rows).put("inputs",ports).put("order",order).put("hidden",new JSONArray(hidden)).put("startupAvailable",config.openOnStartChoice);
     }
 
     private boolean launch(String id) {
