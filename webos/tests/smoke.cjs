@@ -11,7 +11,7 @@ const assert=require('node:assert/strict'),path=require('node:path');
  if(o.method==='getStatus')return o.onSuccess({wired:{state:'connected'}});
  if(o.method==='launch'){window.opens.push(o.parameters.id);return o.onSuccess({returnValue:true})}
  o.onSuccess({returnValue:true,exist:a.includes(o.parameters.appId)})},2);return {cancel(){}}}}};`}));
- await page.goto(require('node:url').pathToFileURL(path.join(__dirname,'../build/package/app/index.html')).href);
+ await page.goto(require('node:url').pathToFileURL(process.env.CLEANHOME_SCENE_ENTRY || path.join(__dirname,'../build/package/app/index.html')).href);
  await page.locator('#shelf .tile').filter({hasText:'Lampa'}).waitFor();await page.evaluate(()=>document.fonts.ready);
  assert.ok(await page.locator('#shelf .tile').count()>5); await page.getByRole('button',{name:'Lampa',exact:true}).focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#hero').innerText(),'YouTube');
  await page.keyboard.press('Enter');await page.waitForFunction(()=>window.opens.includes('youtube.leanback.v4'));

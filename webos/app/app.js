@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
+  var device=window.cleanHomeDevice;
   var manager = 'luna://com.webos.applicationManager';
   var known = [
     ['com.lampa.tv','Lampa','#564086'], ['lampa','Lampa','#564086'], ['lampa.tv','Lampa','#564086'],
@@ -26,6 +27,7 @@
     timer = setTimeout(function () { $('notice').hidden = true; }, 4500);
   }
   function service(method, params, uri) {
+    if(device)return device.service(method,params);
     return new Promise(function (resolve, reject) {
       var handle, timeout = setTimeout(function () { if (handle && handle.cancel) handle.cancel(); reject(new Error('Телевизор не ответил')); }, 4000);
       function finish(callback, value) { clearTimeout(timeout); callback(value); }
@@ -44,7 +46,8 @@
     return list;
   }
   function valid(id) {return typeof id === 'string' && /^[a-zA-Z0-9][._a-zA-Z0-9-]{0,126}$/.test(id) && id !== 'dev.cleanhome.tv.webos';}
-  function order() {return Array.isArray(pref.dock) ? pref.dock : libraryIds();}
+  var defaultHidden=[];
+  function order() {return Array.isArray(pref.dock) ? pref.dock : libraryIds().filter(function(id){return defaultHidden.indexOf(id)<0;});}
   function shelfTiles() {return $('shelf').querySelectorAll('button.tile');}
   function tileFor(id) {return Array.prototype.find.call(shelfTiles(),function(el){return el.dataset.id===id;});}
   var live=window.cleanHomeLive, cachedItems=null, livePass=0, previousSignature='';
@@ -67,6 +70,20 @@
   }
   var extras=[];
   async function scan(pair,quiet) {
+    if(device) {
+      var request=++livePass;
+      try {
+        var data=await device.catalog();
+        if(request!==livePass)return;
+        sources=data.inputs;
+        if(!pref.libraryOrder && data.order.length)pref.libraryOrder=data.order;
+        data.apps.forEach(function(a){if(a.recent && !pref.recent[a.id])pref.recent[a.id]=a.recent;});
+        defaultHidden=data.hidden;
+        drawLive(data.apps);
+        if(view==='inputs')showInputs();
+      } catch(e){if(!quiet)say('Не удалось загрузить каталог Android.');}
+      return;
+    }
     if(!live)return scanFallback();
     var pass=++livePass;
     var cached=await live.ready;
@@ -214,7 +231,7 @@
   function showInputs() {
     var page=panel('inputs','Источники'), row=grid(page);
     sources.forEach(function (a) {button(row,a.name,function () {launch(a);});});
-    if (!sources.length) note(page,scanning?'Проверяем входы…':'У телевизора нет доступных HDMI-входов в каталоге webOS.');
+    if (!sources.length) note(page,scanning?'Проверяем входы…':'У телевизора нет доступных входов.');
     first(page);
   }
   // Only installed apps participate. New arrivals follow the saved order.
@@ -307,7 +324,7 @@
     if(live && !live.paired())button(row,'Подключить каталог LG',function () {
       say('Подтвердите подключение CleanHome на телевизоре.');scan(true);
     });
-    button(row,'Добавить по ID',customForm); button(row,'Обновить',function () {say('Проверяем приложения…');scan();});
+    if(!device)button(row,'Добавить по ID',customForm); button(row,'Обновить',function () {say('Проверяем приложения…');scan();});
     if (focusTarget) focusTarget.focus(); else first(page);
   }
   var actionApp;
@@ -358,7 +375,9 @@
     button(row,'Обои',wallPicker);
     var rotate=button(row,rotationLabel(),function () {pref.rotate=pref.rotate===false;save();restartWalls();rotate.textContent=rotationLabel();});
     var meter=button(row,fpsLabel(),function () {pref.fps=!pref.fps;save();meter.textContent=fpsLabel();updateMeter();});
-    button(row,'Настроить полку',library);first(page);
+    button(row,'Настроить полку',library);
+    if(device)button(row,'Дополнительно · Android',function(){device.settings();});
+    first(page);
   }
   function rotationLabel() {return 'Смена обоев · '+(pref.rotate===false?'выкл.':'30 мин');}
   function fpsLabel() {return 'Счётчик кадров · '+(pref.fps?'вкл.':'выкл.');}
@@ -381,6 +400,7 @@
   function back() {
     if(view==='sort'){cancelDrag();editIds=null;heldId=null;library();if($('library-order'))$('library-order').focus();}
     else if(view==='walls') settings(); else if(view==='actions') library(actionApp.id); else if(view==='custom') library(); else if(view) close();
+    else if(device)device.back();
     else if (window.webOS && window.webOS.platformBack) window.webOS.platformBack(); else window.close();
   }
   function homeColumns() {
@@ -514,6 +534,15 @@
   });
   $('back').onclick=back;$('inputs').onclick=function () {open('inputs',showInputs);};
   $('library').onclick=function () {open('library',library);};$('settings').onclick=function () {open('settings',settings);};
+  if(device)window.cleanHomeCommand=function(command){
+    if(command==='refresh'){network();scan(false,true);return;}
+    if(command==='back'){back();return;}
+    if(command==='home'){if(view)close();var firstTile=shelfTiles()[0];if(firstTile)firstTile.focus();return;}
+    if(command==='inputs')open('inputs',showInputs);
+    if(command==='library')open('library',library);
+    if(command==='settings')open('settings',settings);
+    if(command==='sort')open('sort',editLibrary);
+  };
   network();clock();setInterval(clock,15000);restartWalls();updateMeter();renderHome(false);scan();
   setInterval(function(){if(!document.hidden && live && live.paired())scan(false,true);},30000);
   document.addEventListener('visibilitychange',function () {updateMeter();if(!document.hidden){network();clock();scan();}});

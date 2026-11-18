@@ -152,6 +152,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppAdapter adapter;
     private RecyclerView grid;
     private FrameLayout root;
+    private SharedTvScene sharedScene;
     /** First-launch line about the gestures that are easy to miss; null once dismissed. */
     private View gestureHint;
     /** Frame statistics behind the hold-Settings "Performance" row. */
@@ -438,6 +439,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())
                     && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return;
             // In the background this only marks the tiles stale; onResume rebuilds them once.
+            if (sharedScene != null) { if (resumed) sharedScene.command("refresh"); return; }
             if (!tileRefresh.onPackagesChanged()) return;
             reloadApps(false);
             if (appLibrary != null) appLibrary.refresh();
@@ -478,7 +480,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         // Cold start is one thread doing everything in a row on a slow CPU. Start what can run beside the layout
         // inflate first: the tile artwork and fonts warm up on their own thread, and the wallpaper decodes on its own.
-        StartupWarmup.start(this);
+        boolean useSharedScene = android.webkit.WebView.getCurrentWebViewPackage() != null;
+        if (!useSharedScene) StartupWarmup.start(this);
         installBundledTheme();
         requestHomeRoleIfNeeded();
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
@@ -1025,7 +1028,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .build(), vpnCallback);
         }
         // Last, so the first picture has had the whole of onCreate to finish decoding.
-        wallpaperPlayer.attach(root);
+        // Keep the existing Home component, startup rules and firmware-specific remote handlers.
+        if (useSharedScene) {
+            sharedScene = new SharedTvScene(this, cfg);
+            root.setVisibility(View.GONE);
+            addContentView(sharedScene, new FrameLayout.LayoutParams(-1, -1));
+            sharedScene.requestFocus();
+        } else {
+            wallpaperPlayer.attach(root);
+        }
         // Not after recreate(): the launch intent survives it and would open the settings again.
         if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent()) && !openLibraryIfAsked(getIntent())) {
             openInputsIfAsked(getIntent());
@@ -1055,6 +1066,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openInputsIfAsked(Intent intent) {
         if (intent == null || !ACTION_VIEW_INPUTS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
+        if (sharedScene != null) { sharedScene.command("inputs"); return true; }
         View anchor = topMenu ? findViewById(R.id.btnSettings) : btnInputs;
         if (anchor.getVisibility() != View.VISIBLE) return true;
         if (anchor.isLaidOut()) {
@@ -1090,6 +1102,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openLibraryIfAsked(Intent intent) {
         if (intent == null || !ACTION_APP_LIBRARY.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
+        if (sharedScene != null) { sharedScene.command("library"); return true; }
         if (!appLibraryEnabled) return true;
         getWindow().getDecorView().post(() -> {
             if (!isFinishing() && !isDestroyed()) onLibraryRequested();
@@ -1100,7 +1113,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
-        startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+        if (sharedScene != null) sharedScene.command("settings"); else openAndroidSceneSettings();
         return true;
     }
 
@@ -1116,6 +1129,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLibraryIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        if (sharedScene != null) { sharedScene.command("home"); return; }
         if (gameDay != null && !stopped) gameDay.read();
         grid.scrollToPosition(0);
         lastFocused = 0;
@@ -1163,6 +1177,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         restartIdleClock();
         promptsPaused = false;
+        if (sharedScene != null) {
+            sharedScene.onResume();
+            sharedScene.command("refresh");
+            if (getIntent().getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
+                getIntent().removeExtra(LauncherSettingsActivity.EXTRA_REORDER);
+                sharedScene.command("sort");
+            }
+            openLiveTvAfterBoot();
+            return;
+        }
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
             case REBUILD:
@@ -1372,6 +1396,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         perfMeter.stop();
+        if (sharedScene != null) sharedScene.onPause();
         resumed = false;
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
@@ -1446,6 +1471,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (sharedScene != null) sharedScene.release();
         RemoteKeys.release(this);
         cancelHoldOk();
         if (gameDay != null) gameDay.shutdown();
@@ -1501,6 +1527,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (resumed && event.getKeyCode() >= 1000 && RemoteKeys.handle(this, event, homeAppKeys.get(event.getKeyCode()),
                 homeHoldAppKeys.get(event.getKeyCode()))) return true;
         if (handleSettingsKey(event)) return true;
+        if (sharedScene != null) {
+            if (isOkKey(event.getKeyCode()) && event.getKeyCode() != KeyEvent.KEYCODE_ENTER) {
+                return super.dispatchKeyEvent(new KeyEvent(event.getDownTime(), event.getEventTime(),
+                        event.getAction(), KeyEvent.KEYCODE_ENTER, event.getRepeatCount(), event.getMetaState(),
+                        event.getDeviceId(), event.getScanCode(), event.getFlags(), event.getSource()));
+            }
+            return super.dispatchKeyEvent(event);
+        }
         if (holdOk(event)) return true;
         if (tileMenuEnabled && !homeBusy() && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
             int position = focusedTilePosition();
@@ -1786,6 +1820,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
+        if (sharedScene != null) { sharedScene.command("back"); return; }
+        sceneHomeBack();
+    }
+
+    void openAndroidSceneSettings() {
+        startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+    }
+
+    void sceneHomeBack() {
         // Home screen: Back goes nowhere, unless back_opens_clock is on.
         if (backOpensClock) startActivity(new Intent(this, ClockActivity.class));
     }

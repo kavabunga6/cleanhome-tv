@@ -1,11 +1,11 @@
 # CleanHome TV для Android TV и LG webOS
 
-CleanHome открывает приложения с одного экрана. Этот форк добавляет версию для телевизоров LG с webOS к Android-лаунчеру Александра Унгуренко. [Оригинальный CleanHome TV](https://github.com/ungurenko/cleanhome-tv)
+В сборках этого форка Android TV и LG webOS используют один интерфейс. Главная, подпись выбранной карточки, библиотека, ручная сортировка, обои и настройки берутся из одного набора исходников. Значки приложений и доступные входы предоставляет сам телевизор. [Оригинальный CleanHome TV](https://github.com/ungurenko/cleanhome-tv)
 
 | Устройство | Что установить | Где проверено |
 | --- | --- | --- |
-| **LG Smart TV с webOS** | [Скачать IPK 0.4.1](https://github.com/kavabunga6/cleanhome-tv/releases/download/webos-v0.4.1/dev.cleanhome.tv.webos_0.4.1_all.ipk) · [Установка и управление](webos/README.md) | **LG 55NANO866NA**, версия SDK по данным ТВ **5.6.2**. На других моделях с Developer Mode совместимость требует проверки. |
-| **Android TV / Google TV и совместимые Android-прошивки** | [APK автора Android-версии](https://github.com/ungurenko/cleanhome-tv/releases) · [Установка](#android-install) | Автор оригинала проверил Tuvio STV-43FDUBK1R и Яндекс ТВ Станцию MiniLED (YaOS). |
+| **LG Smart TV с webOS** | [Скачать IPK 0.4.2](https://github.com/kavabunga6/cleanhome-tv/releases/download/tv-ui-1/dev.cleanhome.tv.webos_0.4.2_all.ipk) · [Установка и управление](webos/README.md) | **LG 55NANO866NA**, версия SDK по данным ТВ **5.6.2**. На других моделях с Developer Mode совместимость требует проверки. |
+| **Android TV / Google TV и совместимые Android-прошивки** | [Скачать APK 4.7.0](https://github.com/kavabunga6/cleanhome-tv/releases/download/tv-ui-1/CleanHome-TV-4.7.0.apk) | Общий интерфейс проверен на эмуляторе Android TV 14. Исходную Android-версию автор проверял на Tuvio STV-43FDUBK1R и Яндекс ТВ Станции MiniLED (YaOS). |
 
 ## Что добавлено для LG
 
@@ -13,6 +13,16 @@ CleanHome открывает приложения с одного экрана. 
 - **Каталог с телевизора.** После однократного разрешения CleanHome получает установленные приложения и их значки. Когда вы ставите или удаляете приложение, каталог обновляется на LG без участия компьютера.
 - **Два способа сортировки.** Перетащите карточку указателем Magic Remote или возьмите её кнопкой OK и переставьте стрелками. За один вход можно расставить несколько приложений.
 - **Запуск на webOS.** CleanHome TV появляется среди приложений LG. Кнопка Home на проверенном телевизоре открывает системный экран LG.
+
+## Установка общей версии на Android TV
+
+Скачайте APK из таблицы выше. На телевизоре с включённой отладкой выполните `adb install -r CleanHome-TV-4.7.0.apk` и откройте «Главный экран» в списке приложений. При установке поверх версии с другой подписью Android выдаёт `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Удаление ранее установленной версии стирает её локальные настройки.
+
+Порт использует системный Android WebView. Источники HDMI, список приложений, запуск и дополнительные настройки обслуживает Android. Назначение приложения на кнопку Home зависит от прошивки.
+
+### Сборка APK
+
+Из корня проекта выполните `.\gradlew.bat :app:assembleRelease` (Windows) или `./gradlew :app:assembleRelease` (macOS/Linux) с JDK 17 и Android SDK 34. Файл появится в `app/build/outputs/apk/release/`. Gradle упаковывает ту же сцену из `webos/app/`, что и сборщик IPK.
 
 ## Android-версия оригинального проекта
 

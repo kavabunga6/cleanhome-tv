@@ -1,12 +1,12 @@
 # CleanHome TV на LG webOS
 
-Порт добавляет на LG экран запуска с сеткой приложений. Проверено на **LG 55NANO866NA** (webOS TV, SDK 5.6.2). Другие модели LG с приложением Developer Mode можно проверить этой же инструкцией. Для Android TV и Google TV используйте [инструкцию для APK](../README.md#android-install).
+Порт добавляет на LG экран запуска с сеткой приложений. Проверено на **LG 55NANO866NA** (webOS TV, SDK 5.6.2). Другие модели LG с приложением Developer Mode можно проверить этой же инструкцией. Для Android TV и Google TV используйте [инструкцию для APK с общим интерфейсом](../README.md#установка-общей-версии-на-android-tv).
 
 ## Установка готового IPK
 
 Компьютер понадобится для установки и обновления самого CleanHome. После установки список приложений и значки обновляются на телевизоре.
 
-1. На компьютере скачайте [CleanHome TV 0.4.1 для webOS](https://github.com/kavabunga6/cleanhome-tv/releases/download/webos-v0.4.1/dev.cleanhome.tv.webos_0.4.1_all.ipk). Подключите компьютер и телевизор к одной домашней сети.
+1. На компьютере скачайте [CleanHome TV 0.4.2 для webOS](https://github.com/kavabunga6/cleanhome-tv/releases/download/tv-ui-1/dev.cleanhome.tv.webos_0.4.2_all.ipk). Подключите компьютер и телевизор к одной домашней сети.
 2. На LG откройте магазин приложений, найдите **Developer Mode** и установите. Войдите под своей учётной записью LG Developer. Включите **Dev Mode Status** и дождитесь перезагрузки.
 3. Снова откройте Developer Mode. Включите **Key Server** и запишите IP-адрес с экрана. Код **Passphrase** понадобится при привязке компьютера. [Инструкция LG по Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
 4. На компьютере с Node.js и npm установите webOS CLI и добавьте телевизор. [Установка CLI от LG](https://webostv.developer.lge.com/develop/tools/cli-installation)
@@ -27,7 +27,7 @@
 5. Откройте терминал в папке со скачанным IPK и выполните:
 
    ```sh
-   ares-install --device my-lg dev.cleanhome.tv.webos_0.4.1_all.ipk
+   ares-install --device my-lg dev.cleanhome.tv.webos_0.4.2_all.ipk
    ares-launch --device my-lg dev.cleanhome.tv.webos
    ```
 

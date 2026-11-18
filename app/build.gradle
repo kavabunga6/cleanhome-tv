@@ -13,8 +13,8 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 27
-        versionName "4.6.2"
+        versionCode 28
+        versionName "4.7.0"
     }
 
     buildTypes {
@@ -41,6 +41,20 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+// The APK and the IPK package the same scene. Only the platform scripts differ.
+def sceneAssets = tasks.register('prepareTvScene', Sync) {
+    into layout.buildDirectory.dir('generated/tvSceneAssets/scene')
+    from('../webos/app') {
+        include 'index.html', 'scene.css', 'app.js', 'remote-input.js'
+        filesMatching('index.html') {
+            filter { line -> line.replace('<script src="webOSTV.js"></script><script src="live-catalog.js"></script>', '<script src="android.js"></script>') }
+        }
+    }
+    from('src/main/res/font') { include 'manrope.ttf', 'unbounded.ttf'; into 'assets' }
+}
+android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/tvSceneAssets'))
+tasks.named('preBuild').configure { dependsOn(sceneAssets) }
 
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
